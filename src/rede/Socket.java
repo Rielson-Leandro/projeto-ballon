@@ -31,12 +31,14 @@ public class Socket {
 	private AtomicInteger send_base = new AtomicInteger(0); //base da janela de congestionamento
 	private AtomicInteger nextseqnum = new AtomicInteger(0); //proximo numero de sequencia
 	private AtomicInteger cwin = new AtomicInteger(1); //janela de congestionamento
-	private AtomicInteger ssthresh = new AtomicInteger(100); //limiar de partidade lenta
+	private AtomicInteger ssthresh = new AtomicInteger(64); //limiar de partidade lenta
 	private AtomicInteger quantos_zerou = new AtomicInteger(0);
 	private AtomicInteger restam_prox_cwin = new AtomicInteger(1);	
 	private AtomicLong timeout = new AtomicLong(1000);
-
-	private int max_win = 512;
+	private AtomicBoolean estimateRTT_process = new AtomicBoolean(); //variavel para detectar que se esta estimando um RTT
+	private AtomicInteger estimateRTT_for_packet = new AtomicInteger(0); //numero do pacote para o qual se esta estimando o RTT
+	
+	private int max_win = 128;
 
 	AtomicLong temp_SampleRTT = new AtomicLong(0);
 	AtomicLong last_send = new AtomicLong(0); //valor do ultimo byte que se tem certeza que foi recebido pelo cliente
@@ -163,7 +165,7 @@ public class Socket {
 		receiver_t.setName("Receiver");
 		sender_t.start();
 		receiver_t.start();
-		new Timer().scheduleAtFixedRate(new UpdateTimers(),0, update_timers_rate);
+//		new Timer().scheduleAtFixedRate(new UpdateTimers(),0, update_timers_rate);
 
 	}
 
@@ -187,9 +189,12 @@ public class Socket {
 		@Override
 		public void run() {
 			while(!close.get()){
+				
 				if(nextseqnum.get()<=(send_base.get()+cwin.get())){//verifico se existe espaÁo dentro da janela para criar um pacote
+					
 					byte[] to_packet = new byte[Pacote.default_size]; //array de bytes com dados lidos
 					int as_read = 0; //inteiro para ver quantos bytes foram lidos
+					
 					try {
 						as_read = read_internal(to_packet, Pacote.head_payload, Pacote.util_load);							
 					} catch (IOException e) {
@@ -199,13 +204,16 @@ public class Socket {
 					}
 
 					if(as_read>0){
-						//verificar a possibilidade de ter de colocar a janela de recepÁ„o caso ative full duplex
+												
 						OperacoesBinarias.inserirCabecalho(to_packet, nextseqnum.get(), 0, false, false, false, false, as_read, 0); //inserÁ„o de cabeÁalh
 						DatagramPacket packet = new DatagramPacket(to_packet, Pacote.default_size,client_adress,client_port);
 						Pacote pacote = new Pacote(packet,System.currentTimeMillis()); //Cria pacote de buffer
 
 						synchronized (sinc_send_buffer) {
 							send_packet_buffer.add(pacote);
+							if(!estimateRTT_process.get()){ //Se nenhum estimados de RTT est√° em progresso inicia um
+								estimateRTT_for_packet.set(nextseqnum.get()); //estimamos o valor para 
+							}
 						}
 
 						nextseqnum.incrementAndGet();
@@ -265,7 +273,7 @@ public class Socket {
 
 						if(packet.getAddress().equals(client_adress) && packet.getPort()==client_port){ //tenho um ack de quem me comunico
 
-							Pacote temp;
+							Pacote temp = null;
 
 							synchronized (sinc_send_buffer) {
 
@@ -285,6 +293,15 @@ public class Socket {
 									}
 								}
 							}
+							
+							if(key>estimateRTT_for_packet.get() && estimateRTT_process.get() && temp!=null){
+								long temp_SampleRTT = System.currentTimeMillis() - temp.send_time;//Calculo sampleRTT
+								EstimatedRTT = (long) ((EstimatedRTT*0.875)+(0.125*temp_SampleRTT)); //Use para Estimar o proximoRTT
+								DevRTT = (long) ((0.75*DevRTT)+(0.25*Math.abs(temp_SampleRTT-EstimatedRTT))); //E tamb√©m o DevRTT
+								timeout.set(EstimatedRTT+(4*DevRTT));//E altere o timeout
+								estimateRTT_process.set(false);
+							}
+							
 						}else{
 							System.out.println("Recebi um ACK de um host estranho. Cuidado a rede pode estar sendo invadida! ^~^");
 						}
@@ -389,18 +406,18 @@ public class Socket {
 		}
 	}
 
-	private class UpdateTimers extends TimerTask{
-
-		@Override
-		public void run() {
-			synchronized (sinc_var_timeout) {
-				EstimatedRTT = (long) ((EstimatedRTT*0.875)+(0.125*temp_SampleRTT.get()));
-				DevRTT = (long) ((0.75*DevRTT)+(0.25*Math.abs(temp_SampleRTT.get()-EstimatedRTT)));
-				timeout.set(Math.max(EstimatedRTT+(4*DevRTT),min_timeout));
-			}
-		}
-
-	}
+//	private class UpdateTimers extends TimerTask{
+//
+//		@Override
+//		public void run() {
+//			synchronized (sinc_var_timeout) {
+//				EstimatedRTT = (long) ((EstimatedRTT*0.875)+(0.125*temp_SampleRTT.get()));
+//				DevRTT = (long) ((0.75*DevRTT)+(0.25*Math.abs(temp_SampleRTT.get()-EstimatedRTT)));
+//				timeout.set(Math.max(EstimatedRTT+(4*DevRTT),min_timeout));
+//			}
+//		}
+//
+//	}
 
 	private class Bandwidth extends TimerTask{
 
