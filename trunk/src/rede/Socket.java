@@ -69,7 +69,7 @@ public class Socket {
 
 	//Buffers internos para Pacotes
 	ArrayList<Pacote> send_packet_buffer = new ArrayList<Pacote>();
-//	HashMap<Integer,Pacote> send_packet_buffer = new HashMap<Integer,Pacote>();
+	//	HashMap<Integer,Pacote> send_packet_buffer = new HashMap<Integer,Pacote>();
 	HashMap<Integer, byte[]> rec_packet_buffer = new HashMap<Integer,byte[]>(); //chave vai ser numero de sequencia
 	//Buffers internos para Pacotes
 
@@ -275,12 +275,9 @@ public class Socket {
 
 									temp = send_packet_buffer.get(remap);
 
-									synchronized (sinc_var_timeout) {
-										temp_SampleRTT.set(System.currentTimeMillis()-temp.send_time); //atualiza variavel com sampleRTT temporário
-										EstimatedRTT = (long) ((EstimatedRTT*0.875)+(0.125*temp_SampleRTT.get()));
-										DevRTT = (long) ((0.75*DevRTT)+(0.25*Math.abs(temp_SampleRTT.get()-EstimatedRTT)));
-										timeout.set(Math.max(EstimatedRTT+(4*DevRTT),min_timeout));
-									}
+
+									temp_SampleRTT.set(System.currentTimeMillis()-temp.send_time); //atualiza variavel com sampleRTT temporário
+
 
 									if(!temp.isEnviado()){
 										temp.setEnviado(true);
@@ -396,7 +393,11 @@ public class Socket {
 
 		@Override
 		public void run() {
-
+			synchronized (sinc_var_timeout) {
+				EstimatedRTT = (long) ((EstimatedRTT*0.875)+(0.125*temp_SampleRTT.get()));
+				DevRTT = (long) ((0.75*DevRTT)+(0.25*Math.abs(temp_SampleRTT.get()-EstimatedRTT)));
+				timeout.set(Math.max(EstimatedRTT+(4*DevRTT),min_timeout));
+			}
 		}
 
 	}
