@@ -392,7 +392,7 @@ public class Socket {
 		public void run() {
 			EstimatedRTT = (long) ((EstimatedRTT*0.875)+(0.125*temp_SampleRTT.get()));
 			DevRTT = (long) ((0.75*DevRTT)+(0.25*Math.abs(temp_SampleRTT.get()-EstimatedRTT)));
-			timeout.set(EstimatedRTT+(4*DevRTT));
+			timeout.set(Math.max(EstimatedRTT+(4*DevRTT),min_timeout));
 		}
 
 	}
