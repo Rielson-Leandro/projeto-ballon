@@ -101,7 +101,12 @@ public class OperacoesBinarias {
 
 	//ok!
 	public static int extrairComprimentoDados(byte[] data){
-		return bytesParaInt(data, 8, true, false);
+		if(data==null){
+			return bytesParaInt(data, 8, true, false);
+		}else{
+			return 0;
+		}
+		
 	}
 
 	//ok!
