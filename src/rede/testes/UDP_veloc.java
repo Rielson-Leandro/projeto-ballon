@@ -14,12 +14,13 @@ public class UDP_veloc {
 	AtomicLong velocidade = new AtomicLong(0);
 
 	public void mede() throws IOException{
-		DatagramSocket tempSocket = new DatagramSocket(3000);
+		DatagramSocket tempSocket = new DatagramSocket(50000);
 		new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
 		while(true){
 			byte[] dados = new byte[Pacote.default_size];
 			DatagramPacket rec = new DatagramPacket(dados, dados.length);
 			tempSocket.receive(rec);
+			System.out.println(rec);
 			velocidade.addAndGet(rec.getLength());
 		}
 
