@@ -3,6 +3,7 @@ package rede.testes;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -16,11 +17,11 @@ public class UDP_veloc {
 	public void mede() throws IOException{
 		DatagramSocket tempSocket = new DatagramSocket(50000);
 		new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
+		tempSocket.send(new DatagramPacket(new byte[16], 16,InetAddress.getByName("172.20.4.99"),50000));
 		while(true){
 			byte[] dados = new byte[Pacote.default_size];
 			DatagramPacket rec = new DatagramPacket(dados, dados.length);
 			tempSocket.receive(rec);
-			System.out.println(rec);
 			velocidade.addAndGet(rec.getLength());
 		}
 
