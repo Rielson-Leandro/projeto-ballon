@@ -36,7 +36,7 @@ public class Socket {
 	private AtomicInteger restam_prox_cwin = new AtomicInteger(1);	
 	private AtomicLong timeout = new AtomicLong(1000);
 
-	private int max_win = 16;
+	private int max_win = 64;
 
 	AtomicLong temp_SampleRTT = new AtomicLong(0);
 	AtomicLong last_send = new AtomicLong(0); //valor do ultimo byte que se tem certeza que foi recebido pelo cliente
@@ -229,6 +229,15 @@ public class Socket {
 						new Thread(new Timeout()).start();
 					}
 				}
+				
+				synchronized (sinc_send_buffer) {
+
+					while(!send_packet_buffer.isEmpty() && send_packet_buffer.get(0).isEnviado()){
+						send_base.incrementAndGet();//incrementa o valor send_base
+						send_packet_buffer.remove(0); //remove o pacore do buffer
+						send_packets_cont.incrementAndGet();
+					}
+				}
 			}
 		}
 	}
@@ -240,15 +249,6 @@ public class Socket {
 			while(!close.get()){ 
 				byte[] buffer = new byte[Pacote.default_size];
 				DatagramPacket packet = new DatagramPacket(buffer, Pacote.default_size);
-
-				synchronized (sinc_send_buffer) {
-
-					while(!send_packet_buffer.isEmpty() && send_packet_buffer.get(0).isEnviado()){
-						send_base.incrementAndGet();//incrementa o valor send_base
-						send_packet_buffer.remove(0); //remove o pacore do buffer
-						send_packets_cont.incrementAndGet();
-					}
-				}
 
 				try {
 					real_socket.receive(packet); //recebe um pacote
