@@ -304,8 +304,6 @@ public class Socket {
 								rcv_base.incrementAndGet();//incrementa a base da janela
 								velocidade.getAndAdd(dataLength);
 
-								
-
 								//tenta pegar mais pacotes que possa estar no buffer de recepção
 								while(rec_packet_buffer.get(rcv_base.get())!=null){
 									byte[] dados = rec_packet_buffer.get(rcv_base.get());
@@ -315,7 +313,8 @@ public class Socket {
 									rcv_base.incrementAndGet(); //incrementa a base de recepção para o proximo pacote
 									write_internal(dados, Pacote.head_payload,dataLength);
 								}
-
+								
+								//Teste importante para ver se o SVN esta rodando direito
 							}else if(seqNum>rcv_base.get()){ //se não temos o proximo pacote esperado
 								//coloca ele no buffer
 								rec_packet_buffer.put(seqNum, buffer);
