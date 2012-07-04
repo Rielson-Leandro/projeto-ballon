@@ -273,9 +273,14 @@ public class Socket {
 								if((remap)<send_packet_buffer.size() && !send_packet_buffer.isEmpty() && remap>=0){ //verifica se o pacote esta dentro das possibilidades do buffer
 
 									temp = send_packet_buffer.get(remap);
-
-									temp_SampleRTT.set(System.currentTimeMillis()-temp.send_time); //atualiza variavel com sampleRTT temporário
-
+									
+									synchronized (sinc_var_timeout) {
+										temp_SampleRTT.set(System.currentTimeMillis()-temp.send_time); //atualiza variavel com sampleRTT temporário
+										EstimatedRTT = (long) ((EstimatedRTT*0.875)+(0.125*temp_SampleRTT.get()));
+										DevRTT = (long) ((0.75*DevRTT)+(0.25*Math.abs(temp_SampleRTT.get()-EstimatedRTT)));
+										timeout.set(Math.max(EstimatedRTT+(4*DevRTT),min_timeout));
+									}
+																		
 									if(!temp.isEnviado()){
 										temp.setEnviado(true);
 										cwin.set(Math.min(cwin.get()+1, max_win));
@@ -390,9 +395,7 @@ public class Socket {
 
 		@Override
 		public void run() {
-			EstimatedRTT = (long) ((EstimatedRTT*0.875)+(0.125*temp_SampleRTT.get()));
-			DevRTT = (long) ((0.75*DevRTT)+(0.25*Math.abs(temp_SampleRTT.get()-EstimatedRTT)));
-			timeout.set(Math.max(EstimatedRTT+(4*DevRTT),min_timeout));
+			
 		}
 
 	}
