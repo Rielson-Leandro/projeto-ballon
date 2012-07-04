@@ -48,7 +48,7 @@ public class Socket {
 	private long update_timers_rate = 300;
 
 	private AtomicInteger send_packets_cont = new AtomicInteger();
-	
+
 	AtomicBoolean timer_run = new AtomicBoolean(false);
 
 	//dados para controle de recepção
@@ -355,44 +355,44 @@ public class Socket {
 				}
 
 				synchronized (sinc_send_buffer) {
-					if(System.currentTimeMillis()-send_packet_buffer.get(0).send_time>(min_timeout/2)){
-						if(!send_packet_buffer.isEmpty()){
-							if(!send_packet_buffer.get(0).isEnviado()){
-								//timeout
-								//							System.out.println("Timeout Event");
+					try{
+						if(System.currentTimeMillis()-send_packet_buffer.get(0).send_time>(min_timeout/2)){
+							if(!send_packet_buffer.isEmpty()){
+								if(!send_packet_buffer.get(0).isEnviado()){
+									//timeout
+									//							System.out.println("Timeout Event");
 
-								if(timeouts%2==0){
-									ssthresh.set((cwin.get()/2)+10); // limiar de envio e setado pela metade
-									cwin.set(1); //janela de congestionamento e setada para 1MSS
-									quantos_zerou.set(0);
-									restam_prox_cwin.set(1);
-								}else{
-//									ssthresh.set((cwin.get()/2)+10); // limiar de envio e setado pela metade
-//									cwin.set(cwin.get()/2); //janela de congestionamento e setada para 1MSS
-//									quantos_zerou.decrementAndGet();
-//									restam_prox_cwin.set((int)Math.pow(2, quantos_zerou.get()));
-								}
+									if(timeouts%2==0){
+										ssthresh.set((cwin.get()/2)+10); // limiar de envio e setado pela metade
+										cwin.set(1); //janela de congestionamento e setada para 1MSS
+										quantos_zerou.set(0);
+										restam_prox_cwin.set(1);
+									}
 
-								synchronized (sinc_send_socket) {
-									try {
-										int indice = 0;
-										while(indice<send_packet_buffer.size() && !send_packet_buffer.isEmpty() && !send_packet_buffer.get(indice).isEnviado()){
-											real_socket.send(send_packet_buffer.get(indice).setSend_time_and_getme(System.currentTimeMillis()).pkt);
-											indice++;
+									synchronized (sinc_send_socket) {
+										try {
+											int indice = 0;
+											while(indice<send_packet_buffer.size() && !send_packet_buffer.isEmpty() && !send_packet_buffer.get(indice).isEnviado()){
+												real_socket.send(send_packet_buffer.get(indice).setSend_time_and_getme(System.currentTimeMillis()).pkt);
+												indice++;
+											}
+										} catch (IOException e) {
+											System.out.println("Problema com o socket de envio");
+											System.out.println("Fechando conexão");
+											close.set(true);
+											continua = false;
 										}
-									} catch (IOException e) {
-										System.out.println("Problema com o socket de envio");
-										System.out.println("Fechando conexão");
-										close.set(true);
-										continua = false;
 									}
 								}
-							}
 
-						}else{
-							continua=false;
+							}else{
+								continua=false;
+							}
 						}
+					}catch(Exception e){
+						timer_run.set(false);
 					}
+
 				}
 			}
 			timer_run.set(false);
