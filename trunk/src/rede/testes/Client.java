@@ -17,7 +17,7 @@ public class Client {
 			int as_read = socket.read(buffer,0,buffer.length);
 			if(as_read!=-1){
 				if(as_read<Pacote.default_size){
-					stream.write(buffer, 0, as_read-1);
+					stream.write(buffer, 0, as_read);
 					stream.flush();
 				}else{
 					stream.write(buffer);

@@ -45,7 +45,7 @@ public class Socket {
 	private long EstimatedRTT = 1000;
 	private long DevRTT = 20;
 
-	private long update_timers_rate = 300;
+	private long update_timers_rate = 250;
 
 	private AtomicInteger send_packets_cont = new AtomicInteger();
 
@@ -183,10 +183,6 @@ public class Socket {
 	//classes internas
 	private class Sender extends Thread{
 
-		public Sender() {
-
-		}
-
 		@Override
 		public void run() {
 			while(!close.get()){
@@ -250,7 +246,6 @@ public class Socket {
 					while(!send_packet_buffer.isEmpty() && send_packet_buffer.get(0).isEnviado()){
 						send_base.incrementAndGet();//incrementa o valor send_base
 						send_packet_buffer.remove(0); //remove o pacore do buffer
-						//									System.out.println("Nova base: "+send_base.get());
 						send_packets_cont.incrementAndGet();
 					}
 				}
@@ -279,11 +274,12 @@ public class Socket {
 
 									temp = send_packet_buffer.get(remap);
 
-
 									temp_SampleRTT.set(System.currentTimeMillis()-temp.send_time); //atualiza variavel com sampleRTT temporário
 
 									if(!temp.isEnviado()){
 										temp.setEnviado(true);
+										cwin.incrementAndGet();
+									}else{
 										cwin.incrementAndGet();
 									}
 								}
@@ -308,18 +304,16 @@ public class Socket {
 								velocidade.getAndAdd(dataLength);
 
 								byte[] dados = null;
-
-								do {
-									dados = rec_packet_buffer.get(rcv_base.get());
-									if(dados!=null){
-										dataLength = OperacoesBinarias.extrairComprimentoDados(dados);
-										velocidade.getAndAdd(dataLength);
-										seqNum = OperacoesBinarias.extrairNumeroSequencia(dados);
-										rcv_base.incrementAndGet(); //incrementa a base de recepção para o proximo pacote
-										write_internal(dados, Pacote.head_payload,dataLength);
-									}
-								} while (dados!=null);
-
+								
+								
+								while(rec_packet_buffer.get(rcv_base.get())!=null){
+									dataLength = OperacoesBinarias.extrairComprimentoDados(dados);
+									velocidade.getAndAdd(dataLength);
+									seqNum = OperacoesBinarias.extrairNumeroSequencia(dados);
+									rcv_base.incrementAndGet(); //incrementa a base de recepção para o proximo pacote
+									write_internal(dados, Pacote.head_payload,dataLength);
+								}
+								
 							}else if(seqNum>rcv_base.get()){ //se não temos o proximo pacote esperado
 								//coloca ele no buffer
 								rec_packet_buffer.put(seqNum, buffer);

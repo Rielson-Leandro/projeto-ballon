@@ -9,7 +9,7 @@ import rede.Socket;
 public class Server {
 	public static void main(String[] args) throws IOException, InterruptedException {
 		Socket socket = new Socket(3001);
-		FileInputStream in = new FileInputStream("Ubuntu.iso");
+		FileInputStream in = new FileInputStream("FF.zip");
 		boolean continua = true;
 
 		while(in.available()>0){
@@ -23,5 +23,6 @@ public class Server {
 				Thread.sleep(3000);
 			}
 		}
+		System.out.println("Encerrando...");
 	}
 }
