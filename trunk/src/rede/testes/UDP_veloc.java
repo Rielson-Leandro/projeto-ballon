@@ -37,5 +37,9 @@ public class UDP_veloc {
 		}
 
 	}
+	
+	public static void main(String[] args) throws IOException {
+		new UDP_veloc().mede();
+	}
 
 }
