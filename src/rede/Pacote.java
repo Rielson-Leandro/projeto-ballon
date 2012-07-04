@@ -60,7 +60,6 @@ public class Pacote implements Serializable {
 	@Override
 	public String  toString(){
 		int seqNum = OperacoesBinarias.extrairNumeroSequencia(this.pkt.getData());
-		int lenthg = OperacoesBinarias.extrairComprimentoDados(this.pkt.getData());
 		return "["+seqNum+"]\nState: "+this.is_send;
 	}
 }
