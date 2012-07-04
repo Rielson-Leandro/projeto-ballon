@@ -31,7 +31,7 @@ public class Socket {
 	private AtomicInteger send_base = new AtomicInteger(0); //base da janela de congestionamento
 	private AtomicInteger nextseqnum = new AtomicInteger(0); //proximo numero de sequencia
 	private AtomicInteger cwin = new AtomicInteger(1); //janela de congestionamento
-	private AtomicInteger ssthresh = new AtomicInteger(64); //limiar de partidade lenta
+	private AtomicInteger ssthresh = new AtomicInteger(100); //limiar de partidade lenta
 	private AtomicInteger quantos_zerou = new AtomicInteger(0);
 	private AtomicInteger restam_prox_cwin = new AtomicInteger(1);	
 	private AtomicLong timeout = new AtomicLong(1000);
@@ -45,7 +45,7 @@ public class Socket {
 	private long EstimatedRTT = 1000;
 	private long DevRTT = 20;
 
-	private long update_timers_rate = 250;
+	private long update_timers_rate = 300;
 
 	private AtomicInteger send_packets_cont = new AtomicInteger();
 
@@ -69,6 +69,7 @@ public class Socket {
 
 	//Buffers internos para Pacotes
 	ArrayList<Pacote> send_packet_buffer = new ArrayList<Pacote>();
+//	HashMap<Integer,Pacote> send_packet_buffer = new HashMap<Integer,Pacote>();
 	HashMap<Integer, byte[]> rec_packet_buffer = new HashMap<Integer,byte[]>(); //chave vai ser numero de sequencia
 	//Buffers internos para Pacotes
 
