@@ -36,7 +36,7 @@ public class Socket {
 	private AtomicInteger restam_prox_cwin = new AtomicInteger(1);	
 	private AtomicLong timeout = new AtomicLong(1000);
 
-	private int max_win = 64;
+	private int max_win = 512;
 
 	AtomicLong temp_SampleRTT = new AtomicLong(0);
 	AtomicLong last_send = new AtomicLong(0); //valor do ultimo byte que se tem certeza que foi recebido pelo cliente
@@ -353,7 +353,7 @@ public class Socket {
 
 
 				if(!send_packet_buffer.isEmpty()){
-					if(System.currentTimeMillis()-send_packet_buffer.get(0).send_time>(min_timeout)){
+					if(System.currentTimeMillis()-send_packet_buffer.get(0).send_time>(min_timeout/2)){
 
 						if(!send_packet_buffer.get(0).isEnviado()){
 
