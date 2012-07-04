@@ -16,11 +16,16 @@ public class UDP_send {
 		@SuppressWarnings("resource")
 		FileInputStream stream = new FileInputStream("Ubuntu.iso");
 		@SuppressWarnings("resource")
-		DatagramSocket socket = new DatagramSocket();
+		DatagramSocket socket = new DatagramSocket(50000);
+		DatagramPacket temp = new DatagramPacket(new byte[16], 16);
+		socket.receive(temp);
+		InetAddress adrr = temp.getAddress();
+		int port = temp.getPort();
+		
 		while(stream.available()>0){
 			byte[] data = new byte[Pacote.default_size];
 			int as_read = stream.read(data);
-			DatagramPacket packet = new DatagramPacket(data, as_read, InetAddress.getByName("G2C06"), 50000);
+			DatagramPacket packet = new DatagramPacket(data, as_read, adrr, port);
 			socket.send(packet);
 		}
 	}
