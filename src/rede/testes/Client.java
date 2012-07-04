@@ -9,7 +9,7 @@ import rede.Socket;
 
 public class Client {
 	public static void main(String[] args) throws IOException {
-		Socket socket = new Socket(3001, InetAddress.getByName("localhost"));
+		Socket socket = new Socket(3001, InetAddress.getByName("172.22.4.99"));
 
 		FileOutputStream stream = new FileOutputStream("FF.zip");
 		while(true){
