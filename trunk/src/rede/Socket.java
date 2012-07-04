@@ -279,8 +279,6 @@ public class Socket {
 									if(!temp.isEnviado()){
 										temp.setEnviado(true);
 										cwin.incrementAndGet();
-									}else{
-										cwin.incrementAndGet();
 									}
 								}
 							}
