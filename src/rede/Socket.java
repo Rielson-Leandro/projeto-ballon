@@ -36,7 +36,7 @@ public class Socket {
 	private AtomicInteger restam_prox_cwin = new AtomicInteger(1);	
 	private AtomicLong timeout = new AtomicLong(1000);
 
-	private int max_win = 80;
+	private int max_win = 16;
 
 	AtomicLong temp_SampleRTT = new AtomicLong(0);
 	AtomicLong last_send = new AtomicLong(0); //valor do ultimo byte que se tem certeza que foi recebido pelo cliente
@@ -262,6 +262,7 @@ public class Socket {
 					}else if(OperacoesBinarias.extrairSYN(buffer)){
 
 					}else if(OperacoesBinarias.extrairACK(buffer)){
+
 						if(packet.getAddress().equals(client_adress) && packet.getPort()==client_port){ //tenho um ack de quem me comunico
 
 							Pacote temp;
@@ -278,16 +279,18 @@ public class Socket {
 
 									if(!temp.isEnviado()){
 										temp.setEnviado(true);
-										cwin.incrementAndGet();
+										cwin.set(Math.min(cwin.get()+1, max_win));
 									}
 								}
 							}
 						}else{
 							System.out.println("Recebi um ACK de um host estranho. Cuidado a rede pode estar sendo invadida! ^~^");
 						}
+
 					}else if(OperacoesBinarias.extrairRST(buffer)){
 
 					}else{ //temos um pacote com dados
+
 						if(packet.getAddress().equals(server_adress) && packet.getPort()==server_port){ //tenho um ack de quem me comunico
 							byte[] to_ack = new byte[Pacote.head_payload];
 							OperacoesBinarias.inserirCabecalho(to_ack, 0, seqNum, true, false, false, false, 0, rcv_base.get()+rwin.get());
@@ -301,17 +304,18 @@ public class Socket {
 								rcv_base.incrementAndGet();//incrementa a base da janela
 								velocidade.getAndAdd(dataLength);
 
-								byte[] dados = null;
 								
-								
+
+								//tenta pegar mais pacotes que possa estar no buffer de recepção
 								while(rec_packet_buffer.get(rcv_base.get())!=null){
+									byte[] dados = rec_packet_buffer.get(rcv_base.get());
 									dataLength = OperacoesBinarias.extrairComprimentoDados(dados);
 									velocidade.getAndAdd(dataLength);
 									seqNum = OperacoesBinarias.extrairNumeroSequencia(dados);
 									rcv_base.incrementAndGet(); //incrementa a base de recepção para o proximo pacote
 									write_internal(dados, Pacote.head_payload,dataLength);
 								}
-								
+
 							}else if(seqNum>rcv_base.get()){ //se não temos o proximo pacote esperado
 								//coloca ele no buffer
 								rec_packet_buffer.put(seqNum, buffer);
@@ -324,8 +328,6 @@ public class Socket {
 					System.out.println("Deu merda no Socket do receiver fechando conexão...");
 					close.set(true);
 				}
-
-
 			}
 		}
 
@@ -337,87 +339,47 @@ public class Socket {
 
 		@Override
 		public void run() {
-			if(System.currentTimeMillis()-send_packet_buffer.get(0).send_time>(min_timeout/2)){
-			if(!send_packet_buffer.isEmpty()){
-				if(!send_packet_buffer.get(0).isEnviado()){
-					
-					if(timeouts%2==0){
-						ssthresh.set((cwin.get()/2)+10); // limiar de envio e setado pela metade
-						cwin.set(1); //janela de congestionamento e setada para 1MSS
-						quantos_zerou.set(0);
-						restam_prox_cwin.set(1);
-					}
 
-					synchronized (sinc_send_socket) {
-						try {
-							int indice = 0;
-							while(indice<send_packet_buffer.size() && !send_packet_buffer.isEmpty() && !send_packet_buffer.get(indice).isEnviado()){
-								real_socket.send(send_packet_buffer.get(indice).setSend_time_and_getme(System.currentTimeMillis()).pkt);
-								indice++;
-							}
-						} catch (IOException e) {
-							System.out.println("Problema com o socket de envio");
-							System.out.println("Fechando conexão");
-							close.set(true);
-							continua = false;
-						}
-					}
-				}
-
-			}else{
-				continua=false;
-			}
-		
-		}
 			while(continua){
-
 				try {
 					Thread.sleep(Math.max(timeout.get(),min_timeout)); //thread dorme para simular timeout
 				} catch (InterruptedException e) {
 					System.out.println("Erro no timeout");
 				}
 
-				synchronized (sinc_send_buffer) {
-					try{
-						if(System.currentTimeMillis()-send_packet_buffer.get(0).send_time>(min_timeout/2)){
-							if(!send_packet_buffer.isEmpty()){
-								if(!send_packet_buffer.get(0).isEnviado()){
-									//timeout
-									//							System.out.println("Timeout Event");
+				if(System.currentTimeMillis()-send_packet_buffer.get(0).send_time>(min_timeout/2)){
+					if(!send_packet_buffer.isEmpty()){
+						if(!send_packet_buffer.get(0).isEnviado()){
 
-									if(timeouts%2==0){
-										ssthresh.set((cwin.get()/2)+10); // limiar de envio e setado pela metade
-										cwin.set(1); //janela de congestionamento e setada para 1MSS
-										quantos_zerou.set(0);
-										restam_prox_cwin.set(1);
-									}
+							if(timeouts%2==0){
+								ssthresh.set((cwin.get()/2)+10); // limiar de envio e setado pela metade
+								cwin.set(1); //janela de congestionamento e setada para 1MSS
+								quantos_zerou.set(0);
+								restam_prox_cwin.set(1);
+							}
 
-									synchronized (sinc_send_socket) {
-										try {
-											int indice = 0;
-											while(indice<send_packet_buffer.size() && !send_packet_buffer.isEmpty() && !send_packet_buffer.get(indice).isEnviado()){
-												real_socket.send(send_packet_buffer.get(indice).setSend_time_and_getme(System.currentTimeMillis()).pkt);
-												indice++;
-											}
-										} catch (IOException e) {
-											System.out.println("Problema com o socket de envio");
-											System.out.println("Fechando conexão");
-											close.set(true);
-											continua = false;
-										}
+							synchronized (sinc_send_socket) {
+								try {
+									int indice = 0;
+									while(indice<send_packet_buffer.size() && !send_packet_buffer.isEmpty() && !send_packet_buffer.get(indice).isEnviado()){
+										real_socket.send(send_packet_buffer.get(indice).setSend_time_and_getme(System.currentTimeMillis()).pkt);
+										indice++;
 									}
+								} catch (IOException e) {
+									System.out.println("Problema com o socket de envio");
+									System.out.println("Fechando conexão");
+									close.set(true);
+									continua = false;
 								}
-
-							}else{
-								continua=false;
 							}
 						}
-					}catch(Exception e){
-						timer_run.set(false);
-					}
 
+					}else{
+						continua=false;
+					}
 				}
 			}
+
 			timer_run.set(false);
 			System.out.println("Encerrado temporizado...");
 		}
