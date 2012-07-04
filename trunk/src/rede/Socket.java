@@ -346,8 +346,9 @@ public class Socket {
 					System.out.println("Erro no timeout");
 				}
 
-				if(System.currentTimeMillis()-send_packet_buffer.get(0).send_time>(min_timeout/2)){
+				
 					if(!send_packet_buffer.isEmpty()){
+						if(System.currentTimeMillis()-send_packet_buffer.get(0).send_time>(min_timeout/2)){
 						if(!send_packet_buffer.get(0).isEnviado()){
 
 							if(timeouts%2==0){
@@ -373,9 +374,9 @@ public class Socket {
 							}
 						}
 
-					}else{
-						continua=false;
 					}
+				}else{
+					continua=false;
 				}
 			}
 
