@@ -9,9 +9,9 @@ import rede.Socket;
 
 public class Client {
 	public static void main(String[] args) throws IOException {
-		Socket socket = new Socket(3000, InetAddress.getByName("localhost"));
+		Socket socket = new Socket(3001, InetAddress.getByName("localhost"));
 
-		FileOutputStream stream = new FileOutputStream("video.zip");
+		FileOutputStream stream = new FileOutputStream("FF.zip");
 		while(true){
 			byte[] buffer = new byte[Pacote.default_size];
 			int as_read = socket.read(buffer,0,buffer.length);
