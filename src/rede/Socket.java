@@ -207,7 +207,6 @@ public class Socket {
 							send_packet_buffer.add(pacote);
 						}
 
-						//						System.out.println("New seq "+nextseqnum.incrementAndGet());//incrementa o número de sequencia
 						nextseqnum.incrementAndGet();
 
 						synchronized (sinc_send_socket) { //adquire reserva do socket para enviar pacote
@@ -229,7 +228,7 @@ public class Socket {
 						new Thread(new Timeout()).start();
 					}
 				}
-				
+
 				synchronized (sinc_send_buffer) {
 
 					while(!send_packet_buffer.isEmpty() && send_packet_buffer.get(0).isEnviado()){
@@ -292,10 +291,11 @@ public class Socket {
 					}else{ //temos um pacote com dados
 
 						if(packet.getAddress().equals(server_adress) && packet.getPort()==server_port){ //tenho um ack de quem me comunico
+							//cria ack em resposta ao dado recebido
 							byte[] to_ack = new byte[Pacote.head_payload];
 							OperacoesBinarias.inserirCabecalho(to_ack, 0, seqNum, true, false, false, false, 0, rcv_base.get()+rwin.get());
 							DatagramPacket ack = new DatagramPacket(to_ack, Pacote.head_payload,server_adress,server_port);
-							synchronized (sinc_send_socket) {
+							synchronized (sinc_send_socket) { //envia ack
 								real_socket.send(ack);
 							}
 
@@ -308,13 +308,12 @@ public class Socket {
 								while(rec_packet_buffer.get(rcv_base.get())!=null){
 									byte[] dados = rec_packet_buffer.get(rcv_base.get());
 									dataLength = OperacoesBinarias.extrairComprimentoDados(dados);
-									velocidade.getAndAdd(dataLength);
 									seqNum = OperacoesBinarias.extrairNumeroSequencia(dados);
+									velocidade.getAndAdd(dataLength);
 									rcv_base.incrementAndGet(); //incrementa a base de recepção para o proximo pacote
 									write_internal(dados, Pacote.head_payload,dataLength);
 								}
-								
-								//Teste importante para ver se o SVN esta rodando direito
+
 							}else if(seqNum>rcv_base.get()){ //se não temos o proximo pacote esperado
 								//coloca ele no buffer
 								rec_packet_buffer.put(seqNum, buffer);
@@ -340,15 +339,17 @@ public class Socket {
 		public void run() {
 
 			while(continua){
+
 				try {
 					Thread.sleep(Math.max(timeout.get(),min_timeout)); //thread dorme para simular timeout
 				} catch (InterruptedException e) {
 					System.out.println("Erro no timeout");
 				}
 
-				
-					if(!send_packet_buffer.isEmpty()){
-						if(System.currentTimeMillis()-send_packet_buffer.get(0).send_time>(min_timeout/2)){
+
+				if(!send_packet_buffer.isEmpty()){
+//					if(System.currentTimeMillis()-send_packet_buffer.get(0).send_time>(min_timeout)){
+
 						if(!send_packet_buffer.get(0).isEnviado()){
 
 							if(timeouts%2==0){
@@ -374,7 +375,7 @@ public class Socket {
 							}
 						}
 
-					}
+//					}
 				}else{
 					continua=false;
 				}
