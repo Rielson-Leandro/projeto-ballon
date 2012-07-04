@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 
-public class Socket5 {
+public class Socket {
 	//Socket do lado client
 	private int server_port; //Usado tambem do lado server;
 	private InetAddress server_adress;
@@ -142,7 +142,7 @@ public class Socket5 {
 
 
 	//Server
-	public Socket5(int port) throws IOException{
+	public Socket(int port) throws IOException{
 		this.server_adress = InetAddress.getByName("localhost");
 		this.server_port = port;
 		this.real_socket = new DatagramSocket(port);
@@ -167,7 +167,7 @@ public class Socket5 {
 	}
 
 	//Cliente
-	public Socket5(int server_port, InetAddress server) throws IOException{
+	public Socket(int server_port, InetAddress server) throws IOException{
 		this.server_adress = server;
 		this.server_port = server_port;
 		this.real_socket = new DatagramSocket();
