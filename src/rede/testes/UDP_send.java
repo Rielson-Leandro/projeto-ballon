@@ -13,15 +13,14 @@ import rede.Pacote;
 public class UDP_send {
 	
 	public void send() throws IOException{
+		@SuppressWarnings("resource")
 		FileInputStream stream = new FileInputStream("Ubuntu.iso");
+		@SuppressWarnings("resource")
 		DatagramSocket socket = new DatagramSocket();
-//		InetAddress adress = InetAddress.getByName("172.20.4.80");
-		InetAddress adress = InetAddress.getByName("localhost");
-		int port = 3000;
 		while(stream.available()>0){
 			byte[] data = new byte[Pacote.default_size];
 			int as_read = stream.read(data);
-			DatagramPacket packet = new DatagramPacket(data, as_read, adress, port);
+			DatagramPacket packet = new DatagramPacket(data, as_read, InetAddress.getByName("G2C06"), 50000);
 			socket.send(packet);
 		}
 	}
