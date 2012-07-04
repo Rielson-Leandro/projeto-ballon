@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
+import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -14,7 +15,7 @@ public class UDP_veloc {
 
 	public void mede() throws IOException{
 		DatagramSocket tempSocket = new DatagramSocket(3000);
-
+		new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
 		while(true){
 			byte[] dados = new byte[Pacote.default_size];
 			DatagramPacket rec = new DatagramPacket(dados, dados.length);
@@ -40,6 +41,7 @@ public class UDP_veloc {
 	
 	public static void main(String[] args) throws IOException {
 		new UDP_veloc().mede();
+		
 	}
 
 }
