@@ -10,7 +10,7 @@ import rede.Socket;
 public class Server {
 	public static void main(String[] args) throws IOException, InterruptedException {
 		Socket socket = new Socket(3000);
-		File file = new File("FF.zip");
+		File file = new File("rac2011.iso");
 		FileInputStream in = new FileInputStream(file);
 		boolean continua = true;
 
@@ -22,7 +22,7 @@ public class Server {
 				socket.write(buffer, 0, quantos_leu);
 			}else{
 //				System.out.println("Buffer cheio");
-				Thread.sleep(3000);
+				Thread.sleep(1000);
 			}
 		}
 		
