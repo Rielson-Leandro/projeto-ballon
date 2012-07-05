@@ -9,9 +9,9 @@ import rede.Socket;
 
 public class Client {
 	public static void main(String[] args) throws IOException {
-		Socket socket = new Socket(3001, InetAddress.getByName("172.20.4.99"));
+		Socket socket = new Socket(3000, InetAddress.getByName("172.20.4.99"));
 
-		FileOutputStream stream = new FileOutputStream("Ubuntu.iso");
+		FileOutputStream stream = new FileOutputStream("Geeks.wmv");
 		while(true){
 			byte[] buffer = new byte[Pacote.default_size];
 			int as_read = socket.read(buffer,0,buffer.length);
