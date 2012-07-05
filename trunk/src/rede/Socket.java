@@ -26,6 +26,7 @@ public class Socket extends DatagramSocket{
 	
 	private boolean is_server = false;	
 	
+	
 	//dados para controle de envio
 	private AtomicInteger send_base = new AtomicInteger(0); //base da janela de congestionamento
 	private AtomicInteger nextseqnum = new AtomicInteger(0); //proximo numero de sequencia
@@ -104,8 +105,22 @@ public class Socket extends DatagramSocket{
 		super.close();
 	}
 	
+	@Override
+	public InetAddress getLocalAddress(){
+		return this.getLocalAddress();
+	}
+
+	@Override
+	public int getLocalPort(){
+		return this.getLocalPort();
+	}
+	
 	protected void internal_close(){
 		super.close();
+	}
+		
+	public boolean isConnected(){
+		return is_server;
 	}
 	
 	//Metodos para leitura e escrita nos buffers
