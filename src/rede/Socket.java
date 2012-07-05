@@ -30,20 +30,20 @@ public class Socket extends DatagramSocket{
 	private AtomicInteger send_base = new AtomicInteger(0); //base da janela de congestionamento
 	private AtomicInteger nextseqnum = new AtomicInteger(0); //proximo numero de sequencia
 	private AtomicInteger cwin = new AtomicInteger(1); //janela de congestionamento
-	private AtomicInteger ssthresh = new AtomicInteger(64); //limiar de partidade lenta
+	private AtomicInteger ssthresh = new AtomicInteger(128); //limiar de partidade lenta
 	private AtomicInteger quantos_zerou = new AtomicInteger(0);
 	private AtomicInteger restam_prox_cwin = new AtomicInteger(1);	
 	private AtomicLong timeout = new AtomicLong(1000);
 	private AtomicBoolean estimateRTT_process = new AtomicBoolean(); //variavel para detectar que se esta estimando um RTT
 	private AtomicInteger estimateRTT_for_packet = new AtomicInteger(0); //numero do pacote para o qual se esta estimando o RTT
 	
-	private int max_win = (64*2)/3;
+	private int max_win = 256;
 
 	AtomicLong temp_SampleRTT = new AtomicLong(0);
 	AtomicLong last_send = new AtomicLong(0); //valor do ultimo byte que se tem certeza que foi recebido pelo cliente
 
-	private long min_timeout = 500;
-	private long EstimatedRTT = 500;
+	private long min_timeout = 750;
+	private long EstimatedRTT = 1000;
 	private long DevRTT = 20;
 
 	private AtomicInteger send_packets_cont = new AtomicInteger();
@@ -189,7 +189,7 @@ public class Socket extends DatagramSocket{
 		sender_t.start();
 		receiver_t.start();
 //		new Timer().scheduleAtFixedRate(new UpdateTimers(),0, update_timers_rate);
-		new Timer().scheduleAtFixedRate(new Transfered(), 1000, 1000);
+//		new Timer().scheduleAtFixedRate(new Transfered(), 1000, 1000);
 
 	}
 
