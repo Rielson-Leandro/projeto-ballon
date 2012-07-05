@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -32,20 +31,20 @@ public class Socket2 extends DatagramSocket{
 	private AtomicInteger send_base = new AtomicInteger(0); //base da janela de congestionamento
 	private AtomicInteger nextseqnum = new AtomicInteger(0); //proximo numero de sequencia
 	private AtomicInteger cwin = new AtomicInteger(1); //janela de congestionamento
-	private AtomicInteger ssthresh = new AtomicInteger(64); //limiar de partidade lenta
+	private AtomicInteger ssthresh = new AtomicInteger(128); //limiar de partidade lenta
 	private AtomicInteger quantos_zerou = new AtomicInteger(0);
 	private AtomicInteger restam_prox_cwin = new AtomicInteger(1);	
 	private AtomicLong timeout = new AtomicLong(1000);
 	private AtomicBoolean estimateRTT_process = new AtomicBoolean(); //variavel para detectar que se esta estimando um RTT
 	private AtomicInteger estimateRTT_for_packet = new AtomicInteger(0); //numero do pacote para o qual se esta estimando o RTT
 
-	private int max_win = 128;
+	private int max_win = 256;
 
 	AtomicLong temp_SampleRTT = new AtomicLong(0);
 	AtomicLong last_send = new AtomicLong(0); //valor do ultimo byte que se tem certeza que foi recebido pelo cliente
 
 	private long min_timeout = 500;
-	private long EstimatedRTT = 500;
+	private long EstimatedRTT = 1000;
 	private long DevRTT = 20;
 
 	private AtomicInteger send_packets_cont = new AtomicInteger();
@@ -60,20 +59,9 @@ public class Socket2 extends DatagramSocket{
 
 	AtomicLong velocidade = new AtomicLong(0);
 
-
-	//Buffers internos para Dados
-	private int buffer_size = 20971520;	
-	ByteArrayOutputStream server = new ByteArrayOutputStream(buffer_size);
-	ByteArrayOutputStream cliente = new ByteArrayOutputStream(buffer_size);
-	ByteArrayInputStream internal;
-	ByteArrayInputStream to_cliente;
-	//buffers internos para Dados
-
 	//Objetos para sincronização
 	Object buffer_cliente = new Object();
-	Semaphore sem_buffer_cliente = new Semaphore(buffer_size);
 	Object buffer_server = new Object();
-	Semaphore sem_buffer_server = new Semaphore(buffer_size);
 	Object sinc_send_buffer = new Object(); //objeto para sincroniza de escrita e leitura do buffer de pacotes enviados
 	Object sinc_send_socket = new Object();
 	Object sinc_var_timeout = new Object(); //mutex para operações que envolvem mechar com váriavies que estão no calculo de timeout
@@ -84,7 +72,13 @@ public class Socket2 extends DatagramSocket{
 	HashMap<Integer, byte[]> rec_packet_buffer = new HashMap<Integer,byte[]>(); //chave vai ser numero de sequencia
 	//Buffers internos para Pacotes
 
-
+	//Buffers internos para Dados
+	private int buffer_size = 20971520;	
+	ByteArrayOutputStream server = new ByteArrayOutputStream();
+	ByteArrayOutputStream cliente = new ByteArrayOutputStream(buffer_size);
+	ByteArrayInputStream internal;
+	ByteArrayInputStream to_cliente;
+	//buffers internos para Dados
 
 	public void close(){
 		synchronized (sinc_send_socket) {
@@ -122,9 +116,8 @@ public class Socket2 extends DatagramSocket{
 	//Metodos para leitura e escrita nos buffers
 	AtomicInteger remain_buffer_space = new AtomicInteger(buffer_size);
 
-	public void write(byte[] data,int off, int len) throws IOException, InterruptedException{
+	public void write(byte[] data,int off, int len) throws IOException{
 		synchronized (buffer_server) {
-			sem_buffer_server.acquire(len);
 			server.write(data,off,len);
 			remain_buffer_space.set(remain_buffer_space.get()-len);
 		}
@@ -138,14 +131,11 @@ public class Socket2 extends DatagramSocket{
 				remain_buffer_space.set(buffer_size);
 			}
 		}
-		int as_read = internal.read(data, off, len);
-		sem_buffer_server.release(as_read);
-		return as_read;
+		return internal.read(data,off,len);
 	}
 
-	protected void write_internal(byte[] data,int off,int len) throws IOException, InterruptedException{
+	protected void write_internal(byte[] data,int off,int len) throws IOException{
 		synchronized (buffer_cliente) {
-			sem_buffer_cliente.acquire(len);
 			cliente.write(data,off,len);
 		}
 	}
@@ -157,9 +147,7 @@ public class Socket2 extends DatagramSocket{
 				cliente.reset();
 			}
 		}
-		int as_read = to_cliente.read(data,off,len);
-		sem_buffer_cliente.release(as_read);
-		return as_read;
+		return to_cliente.read(data,off,len);
 	}
 
 	public int buffer_avaliable(){
@@ -255,7 +243,8 @@ public class Socket2 extends DatagramSocket{
 	//Soclet especial criado por um ServerSocket
 	public Socket2(InetAddress client_adress, int client_port, boolean isServer) throws IOException{
 		boolean done = false;
-
+		System.out.println(client_port);
+		System.out.println(client_adress);
 		do{
 			this.is_server = true; //Sou um Socket do servidor
 			byte[] to_cliente = new byte[Pacote.head_payload];
@@ -281,7 +270,7 @@ public class Socket2 extends DatagramSocket{
 
 				new Thread(new Receiver()).start(); //Cria um receptor de ACKs
 				new Thread(new Sender()).start(); //Cria uma thread responsável pelo envio de pacotes
-
+				
 				is_connected = true;
 			}
 		}while(!done);
@@ -431,9 +420,12 @@ public class Socket2 extends DatagramSocket{
 
 									temp_SampleRTT.set(System.currentTimeMillis()-temp.send_time); //atualiza variavel com sampleRTT temporário
 
-									temp.setEnviado(true);
 
-									cwin.set(Math.min(cwin.get()+1, max_win));
+									if(!temp.isEnviado()){
+										temp.setEnviado(true);
+//										cwin.set(Math.min(cwin.get()+1, max_win));
+										cwin.incrementAndGet();
+									}
 								}
 							}
 
@@ -488,9 +480,6 @@ public class Socket2 extends DatagramSocket{
 				} catch (IOException e) {
 					System.out.println("Deu merda no Socket do receiver fechando conexão...");
 					close.set(true);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
 				}
 			}
 			System.out.println("Receiver Encerrado...");
@@ -515,13 +504,15 @@ public class Socket2 extends DatagramSocket{
 
 
 				if(!send_packet_buffer.isEmpty()){
-					if(System.currentTimeMillis()-send_packet_buffer.get(0).send_time>(min_timeout/2)){
+					if(System.currentTimeMillis()-send_packet_buffer.get(0).send_time>(min_timeout)){
 
 						if(!send_packet_buffer.get(0).isEnviado()){
-							ssthresh.set((cwin.get()/2)+10); // limiar de envio e setado pela metade
-							cwin.set(1); //janela de congestionamento e setada para 1MSS
-							quantos_zerou.set(0);
-							restam_prox_cwin.set(1);
+
+								ssthresh.set((cwin.get()/2)+10); // limiar de envio e setado pela metade
+								cwin.set(1); //janela de congestionamento e setada para 1MSS
+								quantos_zerou.set(0);
+								restam_prox_cwin.set(1);
+
 							synchronized (sinc_send_socket) {
 								try {
 									int indice = 0;
