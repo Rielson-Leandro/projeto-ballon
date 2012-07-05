@@ -47,8 +47,6 @@ public class Socket {
 	private long EstimatedRTT = 1000;
 	private long DevRTT = 20;
 
-	private long update_timers_rate = 300;
-
 	private AtomicInteger send_packets_cont = new AtomicInteger();
 
 	AtomicBoolean timer_run = new AtomicBoolean(false);
@@ -134,7 +132,6 @@ public class Socket {
 		return this.last_send.get();
 	}
 
-
 	/**
 	 * Reseta o valor de bytes enviados para zero
 	 *
@@ -207,7 +204,7 @@ public class Socket {
 												
 						OperacoesBinarias.inserirCabecalho(to_packet, nextseqnum.get(), 0, false, false, false, false, as_read, 0); //inserção de cabeçalh
 						DatagramPacket packet = new DatagramPacket(to_packet, Pacote.default_size,client_adress,client_port);
-						Pacote pacote = new Pacote(packet,System.currentTimeMillis()); //Cria pacote de buffer
+						Pacote pacote = new Pacote(packet,System.currentTimeMillis(),as_read); //Cria pacote de buffer
 
 						synchronized (sinc_send_buffer) {
 							send_packet_buffer.add(pacote);
@@ -241,6 +238,7 @@ public class Socket {
 				synchronized (sinc_send_buffer) {
 
 					while(!send_packet_buffer.isEmpty() && send_packet_buffer.get(0).isEnviado()){
+						last_send.addAndGet(send_packet_buffer.get(0).dataLenth);
 						send_base.incrementAndGet();//incrementa o valor send_base
 						send_packet_buffer.remove(0); //remove o pacore do buffer
 						send_packets_cont.incrementAndGet();

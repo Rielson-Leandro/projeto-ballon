@@ -12,13 +12,20 @@ public class Pacote implements Serializable {
 	public static final int head_payload = 16;
 	public static int default_size = 1492;
 	public static int util_load = default_size-head_payload;
-	long send_time;
+	public int dataLenth;
+	public long send_time;
 	
 	
 	public Pacote(DatagramPacket pkt, long send_time){
 		this.pkt = pkt;
 		this.is_send = false;
 		this.send_time = send_time;
+	}
+	
+	public Pacote(DatagramPacket pkt, long send_time,int dataLenth){
+		this.pkt = pkt;
+		this.send_time = send_time;
+		this.dataLenth = dataLenth;
 	}
 	
 	public Pacote(DatagramPacket pkt){
@@ -55,6 +62,10 @@ public class Pacote implements Serializable {
 	public Pacote setSend_time_and_getme(long new_send_time){
 		this.send_time = new_send_time;
 		return this;
+	}
+	
+	public int getDataLentgh(){
+		return this.dataLenth;
 	}
 	
 	@Override
