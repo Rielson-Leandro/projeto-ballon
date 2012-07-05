@@ -371,7 +371,7 @@ public class Socket {
 
 						if(!send_packet_buffer.get(0).isEnviado()){
 
-							if(timeouts%2==0){
+							if(timeouts%3==0){
 								ssthresh.set((cwin.get()/2)+10); // limiar de envio e setado pela metade
 								cwin.set(1); //janela de congestionamento e setada para 1MSS
 								quantos_zerou.set(0);
@@ -405,19 +405,6 @@ public class Socket {
 		}
 	}
 
-//	private class UpdateTimers extends TimerTask{
-//
-//		@Override
-//		public void run() {
-//			synchronized (sinc_var_timeout) {
-//				EstimatedRTT = (long) ((EstimatedRTT*0.875)+(0.125*temp_SampleRTT.get()));
-//				DevRTT = (long) ((0.75*DevRTT)+(0.25*Math.abs(temp_SampleRTT.get()-EstimatedRTT)));
-//				timeout.set(Math.max(EstimatedRTT+(4*DevRTT),min_timeout));
-//			}
-//		}
-//
-//	}
-
 	private class Bandwidth extends TimerTask{
 
 		double repVelo = 0;
@@ -429,20 +416,13 @@ public class Socket {
 			System.out.println((int) repVelo + " Kb/s");
 
 		}
-
 	}
 	
 	private class Transfered extends TimerTask{
 
 		@Override
 		public void run() {
-			if(last_send.get()<1024){
-				System.out.println(last_send.get()+" KB");
-			}else if(last_send.get()<1048576){
-				System.out.println((last_send.get()/1024)+" MB");
-			}else{
-				System.out.println((last_send.get()/(1024*1024))+" GB");			
-			}
+			System.out.println("Bytes transferidos com sucesso: "+ last_send.get());
 		}
 	}
 }
