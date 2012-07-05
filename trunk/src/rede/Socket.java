@@ -105,16 +105,6 @@ public class Socket extends DatagramSocket{
 		super.close();
 	}
 	
-	@Override
-	public InetAddress getLocalAddress(){
-		return this.getLocalAddress();
-	}
-
-	@Override
-	public int getLocalPort(){
-		return this.getLocalPort();
-	}
-	
 	protected void internal_close(){
 		super.close();
 	}
