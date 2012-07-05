@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -59,9 +60,20 @@ public class Socket2 extends DatagramSocket{
 
 	AtomicLong velocidade = new AtomicLong(0);
 
+
+	//Buffers internos para Dados
+	private int buffer_size = 20971520;	
+	ByteArrayOutputStream server = new ByteArrayOutputStream(buffer_size);
+	ByteArrayOutputStream cliente = new ByteArrayOutputStream(buffer_size);
+	ByteArrayInputStream internal;
+	ByteArrayInputStream to_cliente;
+	//buffers internos para Dados
+
 	//Objetos para sincronização
 	Object buffer_cliente = new Object();
+	Semaphore sem_buffer_cliente = new Semaphore(buffer_size);
 	Object buffer_server = new Object();
+	Semaphore sem_buffer_server = new Semaphore(buffer_size);
 	Object sinc_send_buffer = new Object(); //objeto para sincroniza de escrita e leitura do buffer de pacotes enviados
 	Object sinc_send_socket = new Object();
 	Object sinc_var_timeout = new Object(); //mutex para operações que envolvem mechar com váriavies que estão no calculo de timeout
@@ -72,13 +84,7 @@ public class Socket2 extends DatagramSocket{
 	HashMap<Integer, byte[]> rec_packet_buffer = new HashMap<Integer,byte[]>(); //chave vai ser numero de sequencia
 	//Buffers internos para Pacotes
 
-	//Buffers internos para Dados
-	private int buffer_size = 20971520;	
-	ByteArrayOutputStream server = new ByteArrayOutputStream();
-	ByteArrayOutputStream cliente = new ByteArrayOutputStream(buffer_size);
-	ByteArrayInputStream internal;
-	ByteArrayInputStream to_cliente;
-	//buffers internos para Dados
+
 
 	public void close(){
 		synchronized (sinc_send_socket) {
@@ -116,8 +122,9 @@ public class Socket2 extends DatagramSocket{
 	//Metodos para leitura e escrita nos buffers
 	AtomicInteger remain_buffer_space = new AtomicInteger(buffer_size);
 
-	public void write(byte[] data,int off, int len) throws IOException{
+	public void write(byte[] data,int off, int len) throws IOException, InterruptedException{
 		synchronized (buffer_server) {
+			sem_buffer_server.acquire(len);
 			server.write(data,off,len);
 			remain_buffer_space.set(remain_buffer_space.get()-len);
 		}
@@ -131,11 +138,14 @@ public class Socket2 extends DatagramSocket{
 				remain_buffer_space.set(buffer_size);
 			}
 		}
-		return internal.read(data,off,len);
+		int as_read = internal.read(data, off, len);
+		sem_buffer_server.release(as_read);
+		return as_read;
 	}
 
-	protected void write_internal(byte[] data,int off,int len) throws IOException{
+	protected void write_internal(byte[] data,int off,int len) throws IOException, InterruptedException{
 		synchronized (buffer_cliente) {
+			sem_buffer_cliente.acquire(len);
 			cliente.write(data,off,len);
 		}
 	}
@@ -147,7 +157,9 @@ public class Socket2 extends DatagramSocket{
 				cliente.reset();
 			}
 		}
-		return to_cliente.read(data,off,len);
+		int as_read = to_cliente.read(data,off,len);
+		sem_buffer_cliente.release(as_read);
+		return as_read;
 	}
 
 	public int buffer_avaliable(){
@@ -476,6 +488,9 @@ public class Socket2 extends DatagramSocket{
 				} catch (IOException e) {
 					System.out.println("Deu merda no Socket do receiver fechando conexão...");
 					close.set(true);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
 				}
 			}
 			System.out.println("Receiver Encerrado...");
