@@ -430,4 +430,19 @@ public class Socket {
 		}
 
 	}
+	
+	private class Transfered extends TimerTask{
+
+		@Override
+		public void run() {
+			if(last_send.get()<1024){
+				System.out.println(last_send.get()+" KB");
+			}else if(last_send.get()<1048576){
+				System.out.println(last_send);
+			}else{
+				
+				
+			}
+		}
+	}
 }
