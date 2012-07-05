@@ -10,7 +10,6 @@ public class ServerSocket extends DatagramSocket {
 	boolean close;
 	public ServerSocket(int listerningPort) throws SocketException{
 		super(listerningPort);
-		this.close = false;
 	}
 
 	public Socket accept() throws IOException{

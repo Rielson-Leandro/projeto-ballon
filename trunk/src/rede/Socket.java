@@ -243,7 +243,8 @@ public class Socket extends DatagramSocket{
 	//Soclet especial criado por um ServerSocket
 	public Socket(InetAddress client_adress, int client_port, boolean isServer) throws IOException{
 		boolean done = false;
-
+		System.out.println(client_port);
+		System.out.println(client_adress);
 		do{
 			this.is_server = true; //Sou um Socket do servidor
 			byte[] to_cliente = new byte[Pacote.head_payload];
