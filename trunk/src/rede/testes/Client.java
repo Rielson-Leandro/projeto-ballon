@@ -11,7 +11,7 @@ public class Client {
 	public static void main(String[] args) throws IOException {
 		Socket socket = new Socket(3000, InetAddress.getByName("172.20.4.99"));
 
-		FileOutputStream stream = new FileOutputStream("Geeks.wmv");
+		FileOutputStream stream = new FileOutputStream("FF.zip");
 		while(true){
 			byte[] buffer = new byte[Pacote.default_size];
 			int as_read = socket.read(buffer,0,buffer.length);
