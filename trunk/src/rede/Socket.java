@@ -300,7 +300,7 @@ public class Socket{
 
 	//Cliente
 	public Socket(int server_port, InetAddress server) throws IOException{
-		super();
+		real_socket = new DatagramSocket();
 		this.server_adress = server;
 		this.server_port = server_port;
 		DatagramPacket temp  = new DatagramPacket(new byte[Pacote.head_payload], Pacote.head_payload,this.server_adress,this.server_port);
