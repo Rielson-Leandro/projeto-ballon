@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 
-public class Socket extends DatagramSocket{
+public class Socket{
 	//Socket do lado client
 	private int server_port; //Usado tambem do lado server;
 	private InetAddress server_adress;
@@ -24,6 +24,8 @@ public class Socket extends DatagramSocket{
 	private int client_port; //Usado tambem do lado cliente;
 	private InetAddress client_adress;
 
+	private DatagramSocket real_socket;
+	
 	private boolean is_server = false;	
 	private boolean is_connected = false;
 
@@ -93,7 +95,7 @@ public class Socket extends DatagramSocket{
 
 			try {
 				for (int i = 0; i < max_win; i++) {
-					send(packet);
+					real_socket.send(packet);
 				}
 			} catch (IOException e) {
 				System.out.println("Problema com socket interno");
@@ -102,11 +104,7 @@ public class Socket extends DatagramSocket{
 			}
 		}
 		close.set(true);
-		super.close();
-	}
-
-	protected void internal_close(){
-		super.close();
+		real_socket.close();
 	}
 
 	public boolean isConnected(){
@@ -181,24 +179,24 @@ public class Socket extends DatagramSocket{
 			byte[] to_conect = new byte[Pacote.head_payload];
 			OperacoesBinarias.inserirCabecalho(to_conect, 0, 0, false, false, true, false, 0, 0);
 			DatagramPacket packet = new DatagramPacket(to_conect, to_conect.length,address,port);
-			this.send(packet); //envia pacote para o servidor
+			real_socket.send(packet); //envia pacote para o servidor
 
 			//receber mensagem do socket especial de servidor criado para comunicalçao
 			DatagramPacket packet2  = new DatagramPacket(new byte[Pacote.default_size], Pacote.default_size);
-			this.receive(packet2);
+			real_socket.receive(packet2);
 			byte[] temp = packet2.getData();
 
 			if(OperacoesBinarias.extrairSYN(temp) && OperacoesBinarias.extrairACK(temp)){
 				done  = true;
 				this.server_adress = packet2.getAddress();
 				this.server_port = packet2.getPort();
-				this.client_adress = this.getLocalAddress();
-				this.client_port = this.getLocalPort();
+				this.client_adress = real_socket.getLocalAddress();
+				this.client_port = real_socket.getLocalPort();
 
 				//resposta para o novo servidor
 				OperacoesBinarias.inserirCabecalho(to_conect, 0, 0, true, false, true, false, 0, 0);
 				DatagramPacket packet3 = new DatagramPacket(to_conect, to_conect.length,server_adress,server_port);
-				this.send(packet3);
+				real_socket.send(packet3);
 				//resposta para o novo servidor a partir de agora
 				new Thread(new Receiver()).start();
 				new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
@@ -215,23 +213,23 @@ public class Socket extends DatagramSocket{
 			byte[] to_conect = new byte[Pacote.head_payload];
 			OperacoesBinarias.inserirCabecalho(to_conect, 0, 0, false, false, true, false, 0, 0);
 			DatagramPacket packet = new DatagramPacket(to_conect, to_conect.length,InetAddress.getByName(host),port);
-			this.send(packet); //envia pacote para o servidor
+			real_socket.send(packet); //envia pacote para o servidor
 
 			//receber mensagem do socket especial de servidor criado para comunicalçao
 			DatagramPacket packet2  = new DatagramPacket(new byte[Pacote.default_size], Pacote.default_size);
-			this.receive(packet2);
+			real_socket.receive(packet2);
 			byte[] temp = packet2.getData();
 			if(OperacoesBinarias.extrairSYN(temp) && OperacoesBinarias.extrairACK(temp)){
 				done  = true;
 				this.server_adress = packet2.getAddress();
 				this.server_port = packet2.getPort();
-				this.client_adress = this.getLocalAddress();
-				this.client_port = this.getLocalPort();
+				this.client_adress = real_socket.getLocalAddress();
+				this.client_port = real_socket.getLocalPort();
 
 				//resposta para o novo servidor
 				OperacoesBinarias.inserirCabecalho(to_conect, 0, 0, true, false, true, false, 0, 0);
 				DatagramPacket packet3 = new DatagramPacket(to_conect, to_conect.length,server_adress,server_port);
-				this.send(packet3);
+				real_socket.send(packet3);
 				//resposta para o novo servidor a partir de agora
 				new Thread(new Receiver()).start();
 				new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
@@ -250,15 +248,15 @@ public class Socket extends DatagramSocket{
 			byte[] to_cliente = new byte[Pacote.head_payload];
 			OperacoesBinarias.inserirCabecalho(to_cliente, 0, 0, true, false, true, false, 0, 0);
 			DatagramPacket packet = new DatagramPacket(to_cliente, to_cliente.length, client_adress, client_port);
-			this.send(packet); //envio mensagem de apresentação ao meu novo cliente
+			real_socket.send(packet); //envio mensagem de apresentação ao meu novo cliente
 
 			//Seto meus endereços
-			this.server_adress = this.getLocalAddress();
-			this.server_port = this.getLocalPort();
+			this.server_adress = real_socket.getLocalAddress();
+			this.server_port = real_socket.getLocalPort();
 
 			//Recebo confirmação do cliente
 			DatagramPacket temp  = new DatagramPacket(new byte[Pacote.head_payload], Pacote.head_payload);
-			this.receive(temp);
+			real_socket.receive(temp);
 			if(OperacoesBinarias.extrairACK(temp.getData()) && OperacoesBinarias.extrairSYN(temp.getData())){
 				done = true;
 				this.client_adress = temp.getAddress();
@@ -279,11 +277,11 @@ public class Socket extends DatagramSocket{
 
 	//Server
 	public Socket(int port) throws IOException{
-		super(port);
+		real_socket = new DatagramSocket(port);
 		this.server_adress = InetAddress.getByName("localhost");
 		this.server_port = port;
 		DatagramPacket temp  = new DatagramPacket(new byte[Pacote.head_payload], Pacote.head_payload);
-		this.receive(temp);
+		real_socket.receive(temp);
 		this.client_adress = temp.getAddress();
 		this.client_port = temp.getPort();
 
@@ -306,9 +304,9 @@ public class Socket extends DatagramSocket{
 		this.server_adress = server;
 		this.server_port = server_port;
 		DatagramPacket temp  = new DatagramPacket(new byte[Pacote.head_payload], Pacote.head_payload,this.server_adress,this.server_port);
-		this.send(temp);
-		this.client_adress = this.getLocalAddress();
-		this.client_port = this.getLocalPort();
+		real_socket.send(temp);
+		this.client_adress = real_socket.getLocalAddress();
+		this.client_port = real_socket.getLocalPort();
 
 		new Thread(new Receiver()).start();
 		new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
@@ -351,7 +349,7 @@ public class Socket extends DatagramSocket{
 
 						synchronized (sinc_send_socket) { //adquire reserva do socket para enviar pacote
 							try {
-								send(packet);
+								real_socket.send(packet);
 								if(!timer_run.get()){//se nenhum temporizador esta ativo ativa um
 									timer_run.set(true);
 									new Thread(new Timeout()).start();
@@ -392,7 +390,7 @@ public class Socket extends DatagramSocket{
 				DatagramPacket packet = new DatagramPacket(buffer, Pacote.default_size);
 
 				try {
-					receive(packet); //recebe um pacote
+					real_socket.receive(packet); //recebe um pacote
 
 					int key = OperacoesBinarias.extrairNumeroReconhecimento(buffer);
 					int seqNum = OperacoesBinarias.extrairNumeroSequencia(buffer);
@@ -450,7 +448,7 @@ public class Socket extends DatagramSocket{
 							OperacoesBinarias.inserirCabecalho(to_ack, 0, seqNum, true, false, false, false, 0, rcv_base.get()+rwin.get());
 							DatagramPacket ack = new DatagramPacket(to_ack, Pacote.head_payload,server_adress,server_port);
 							synchronized (sinc_send_socket) { //envia ack
-								send(ack);
+								real_socket.send(ack);
 							}
 
 							if(seqNum==rcv_base.get()){ //se temos o proximo pacote esperado
@@ -519,7 +517,7 @@ public class Socket extends DatagramSocket{
 								try {
 									int indice = 0;
 									while(indice<send_packet_buffer.size() && !send_packet_buffer.isEmpty() && !send_packet_buffer.get(indice).isEnviado()){
-										send(send_packet_buffer.get(indice).setSend_time_and_getme(System.currentTimeMillis()).pkt);
+										real_socket.send(send_packet_buffer.get(indice).setSend_time_and_getme(System.currentTimeMillis()).pkt);
 										indice++;
 									}
 								} catch (IOException e) {
