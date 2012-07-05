@@ -11,12 +11,11 @@ import rede.Socket2;
 
 public class Server {
 	public static void main(String[] args) throws IOException, InterruptedException {
-//		ServerSocket serverSocket = new ServerSocket(3001);
-//		Socket socket = serverSocket.accept();
-		Socket2 socket = new Socket2(3001);
+		ServerSocket serverSocket = new ServerSocket(3001);
+		Socket socket = serverSocket.accept();
+//		Socket2 socket = new Socket2(3001);
 		File file = new File("rac2011.iso");
 		FileInputStream in = new FileInputStream(file);
-		boolean continua = true;
 
 		while(in.available()>0){
 			if(socket.buffer_avaliable()>0){

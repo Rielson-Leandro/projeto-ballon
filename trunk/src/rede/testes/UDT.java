@@ -11,6 +11,7 @@ public class UDT {
 		DatagramSocket socket = new DatagramSocket(3000);
 		DatagramPacket packet = new DatagramPacket(new byte[500], 500);
 		socket.receive(packet);
+		System.out.println(packet.getAddress());
 		System.out.println(new String(packet.getData()));
 	}
 }
