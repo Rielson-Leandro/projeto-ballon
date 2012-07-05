@@ -23,19 +23,21 @@ public class Socket extends DatagramSocket{
 	//Socket do lado servidor;
 	private int client_port; //Usado tambem do lado cliente;
 	private InetAddress client_adress;
-
+	
+	private boolean is_server = false;	
+	
 	//dados para controle de envio
 	private AtomicInteger send_base = new AtomicInteger(0); //base da janela de congestionamento
 	private AtomicInteger nextseqnum = new AtomicInteger(0); //proximo numero de sequencia
 	private AtomicInteger cwin = new AtomicInteger(1); //janela de congestionamento
-	private AtomicInteger ssthresh = new AtomicInteger(128); //limiar de partidade lenta
+	private AtomicInteger ssthresh = new AtomicInteger(64); //limiar de partidade lenta
 	private AtomicInteger quantos_zerou = new AtomicInteger(0);
 	private AtomicInteger restam_prox_cwin = new AtomicInteger(1);	
 	private AtomicLong timeout = new AtomicLong(1000);
 	private AtomicBoolean estimateRTT_process = new AtomicBoolean(); //variavel para detectar que se esta estimando um RTT
 	private AtomicInteger estimateRTT_for_packet = new AtomicInteger(0); //numero do pacote para o qual se esta estimando o RTT
 	
-	private int max_win = 128;
+	private int max_win = (64*2)/3;
 
 	AtomicLong temp_SampleRTT = new AtomicLong(0);
 	AtomicLong last_send = new AtomicLong(0); //valor do ultimo byte que se tem certeza que foi recebido pelo cliente
@@ -76,9 +78,37 @@ public class Socket extends DatagramSocket{
 	ByteArrayInputStream internal;
 	ByteArrayInputStream to_cliente;
 	//buffers internos para Dados
-
+			
+	public void close(){
+		synchronized (sinc_send_socket) {
+			byte[] to_fin = new byte[Pacote.head_payload];
+			OperacoesBinarias.inserirCabecalho(to_fin, 0, 0, false, false, false, true, 0, 0);
+			DatagramPacket packet;
+			if(is_server){
+				packet = new DatagramPacket(to_fin, Pacote.head_payload,client_adress,client_port);
+			}else{
+				packet = new DatagramPacket(to_fin, Pacote.head_payload,server_adress,server_port);	
+			}
+			
+			try {
+				for (int i = 0; i < max_win; i++) {
+					send(packet);
+				}
+			} catch (IOException e) {
+				System.out.println("Problema com socket interno");
+				System.out.println("Fechando conexão...");
+				close.set(true);
+			}
+		}
+		close.set(true);
+		super.close();
+	}
+	
+	protected void internal_close(){
+		super.close();
+	}
+	
 	//Metodos para leitura e escrita nos buffers
-
 	AtomicInteger remain_buffer_space = new AtomicInteger(buffer_size);
 
 	public void write(byte[] data,int off, int len) throws IOException{
@@ -261,7 +291,8 @@ public class Socket extends DatagramSocket{
 					int dataLength = OperacoesBinarias.extrairComprimentoDados(buffer);
 
 					if(OperacoesBinarias.extrairFIN(buffer)){
-
+						close.set(true);
+						internal_close();
 					}else if(OperacoesBinarias.extrairSYN(buffer)){
 
 					}else if(OperacoesBinarias.extrairACK(buffer)){
@@ -373,7 +404,7 @@ public class Socket extends DatagramSocket{
 								quantos_zerou.set(0);
 								restam_prox_cwin.set(1);
 							}
-
+							
 							synchronized (sinc_send_socket) {
 								try {
 									int indice = 0;
@@ -415,7 +446,6 @@ public class Socket extends DatagramSocket{
 	}
 	
 	private class Transfered extends TimerTask{
-
 		@Override
 		public void run() {
 			System.out.println("Bytes transferidos com sucesso: "+ last_send.get());
