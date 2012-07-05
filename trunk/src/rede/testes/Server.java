@@ -21,7 +21,6 @@ public class Server {
 				int quantos_leu = in.read(buffer);
 				socket.write(buffer, 0, quantos_leu);
 			}else{
-//				System.out.println("Buffer cheio");
 				Thread.sleep(1000);
 			}
 		}
