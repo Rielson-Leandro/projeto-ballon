@@ -14,7 +14,7 @@ public class UDP_send {
 	
 	public void send() throws IOException{
 		@SuppressWarnings("resource")
-		FileInputStream stream = new FileInputStream("Ubuntu.iso");
+		FileInputStream stream = new FileInputStream("rac2011.iso");
 		@SuppressWarnings("resource")
 		DatagramSocket socket = new DatagramSocket(50000);
 		DatagramPacket temp = new DatagramPacket(new byte[16], 16);
