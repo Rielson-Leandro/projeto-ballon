@@ -171,7 +171,17 @@ public class Socket extends DatagramSocket{
 		this.last_send.set(0);
 	}
 
-
+	//Contrutores reais
+	public Socket(InetAddress address, int port) throws IOException{
+		super(port, address);
+	}
+	
+	public Socket(String host, int port) throws IOException{
+		super(port, InetAddress.getByName(host));
+	}
+	
+	//fim dos construtores reais
+	
 	//Server
 	public Socket(int port) throws IOException{
 		super(port);
@@ -193,9 +203,6 @@ public class Socket extends DatagramSocket{
 		receiver_t.setName("Receiver");
 		sender_t.start();
 		receiver_t.start();
-//		new Timer().scheduleAtFixedRate(new UpdateTimers(),0, update_timers_rate);
-//		new Timer().scheduleAtFixedRate(new Transfered(), 1000, 1000);
-
 	}
 
 	//Cliente
@@ -411,6 +418,7 @@ public class Socket extends DatagramSocket{
 								quantos_zerou.set(0);
 								restam_prox_cwin.set(1);
 							}
+							timeouts++;
 							
 							synchronized (sinc_send_socket) {
 								try {
