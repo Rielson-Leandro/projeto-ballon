@@ -201,6 +201,7 @@ public class Socket extends DatagramSocket{
 				this.send(packet3);
 				//resposta para o novo servidor a partir de agora
 				new Thread(new Receiver()).start();
+				new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
 			}
 		}while(!done);
 	}
@@ -233,6 +234,7 @@ public class Socket extends DatagramSocket{
 				this.send(packet3);
 				//resposta para o novo servidor a partir de agora
 				new Thread(new Receiver()).start();
+				new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
 			}
 		}while(!done);
 	}
