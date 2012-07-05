@@ -8,29 +8,27 @@ import java.net.SocketException;
 
 public class newSocket extends DatagramSocket {
 
-	public newSocket(SocketAddress bindaddr) throws SocketException {
-		super(bindaddr);
-		// TODO Auto-generated constructor stub
+	//variaveis
+	InetAddress endereco_cliente;
+	InetAddress endereco_servidor;
+	int porta_cliente;
+	int porta_servidor;
+	//variaveis
+	
+	
+
+	//usado pelo cliente para indicar criar um socket para o servidor
+	public newSocket(int porta_servidor, InetAddress endereco_Servidor) throws SocketException {
+		super();
 	}
 
-	public newSocket(int port, InetAddress laddr) throws SocketException {
-		super(port, laddr);
-		// TODO Auto-generated constructor stub
-	}
-
+	//usado pelo servidor para ficar escutando na porta especifica
 	public newSocket(int port) throws SocketException {
 		super(port);
-		// TODO Auto-generated constructor stub
 	}
-
-	protected newSocket(DatagramSocketImpl impl) {
-		super(impl);
-		// TODO Auto-generated constructor stub
+		
+	public void setCliente(int portaCliente, InetAddress enderecoCliente){
+		this.endereco_cliente = enderecoCliente;
+		this.porta_cliente = portaCliente;
 	}
-
-	public newSocket() throws SocketException {
-		super();
-		// TODO Auto-generated constructor stub
-	}
-
 }
