@@ -23,10 +23,10 @@ public class Socket extends DatagramSocket{
 	//Socket do lado servidor;
 	private int client_port; //Usado tambem do lado cliente;
 	private InetAddress client_adress;
-	
+
 	private boolean is_server = false;	
-	
-	
+	private boolean is_connected = false;
+
 	//dados para controle de envio
 	private AtomicInteger send_base = new AtomicInteger(0); //base da janela de congestionamento
 	private AtomicInteger nextseqnum = new AtomicInteger(0); //proximo numero de sequencia
@@ -37,7 +37,7 @@ public class Socket extends DatagramSocket{
 	private AtomicLong timeout = new AtomicLong(1000);
 	private AtomicBoolean estimateRTT_process = new AtomicBoolean(); //variavel para detectar que se esta estimando um RTT
 	private AtomicInteger estimateRTT_for_packet = new AtomicInteger(0); //numero do pacote para o qual se esta estimando o RTT
-	
+
 	private int max_win = 256;
 
 	AtomicLong temp_SampleRTT = new AtomicLong(0);
@@ -79,7 +79,7 @@ public class Socket extends DatagramSocket{
 	ByteArrayInputStream internal;
 	ByteArrayInputStream to_cliente;
 	//buffers internos para Dados
-			
+
 	public void close(){
 		synchronized (sinc_send_socket) {
 			byte[] to_fin = new byte[Pacote.head_payload];
@@ -90,7 +90,7 @@ public class Socket extends DatagramSocket{
 			}else{
 				packet = new DatagramPacket(to_fin, Pacote.head_payload,server_adress,server_port);	
 			}
-			
+
 			try {
 				for (int i = 0; i < max_win; i++) {
 					send(packet);
@@ -104,15 +104,15 @@ public class Socket extends DatagramSocket{
 		close.set(true);
 		super.close();
 	}
-	
+
 	protected void internal_close(){
 		super.close();
 	}
-		
+
 	public boolean isConnected(){
-		return is_server;
+		return is_connected;
 	}
-	
+
 	//Metodos para leitura e escrita nos buffers
 	AtomicInteger remain_buffer_space = new AtomicInteger(buffer_size);
 
@@ -173,15 +173,107 @@ public class Socket extends DatagramSocket{
 
 	//Contrutores reais
 	public Socket(InetAddress address, int port) throws IOException{
-		super(port, address);
+		super();
+		this.is_server = false;
+		boolean done = false;
+		do{
+			//Enviar solicitação ao ServerSocket
+			byte[] to_conect = new byte[Pacote.head_payload];
+			OperacoesBinarias.inserirCabecalho(to_conect, 0, 0, false, false, true, false, 0, 0);
+			DatagramPacket packet = new DatagramPacket(to_conect, to_conect.length,address,port);
+			this.send(packet); //envia pacote para o servidor
+
+			//receber mensagem do socket especial de servidor criado para comunicalçao
+			DatagramPacket packet2  = new DatagramPacket(new byte[Pacote.default_size], Pacote.default_size);
+			this.receive(packet2);
+			byte[] temp = packet2.getData();
+
+			if(OperacoesBinarias.extrairSYN(temp) && OperacoesBinarias.extrairACK(temp)){
+				done  = true;
+				this.server_adress = packet2.getAddress();
+				this.server_port = packet2.getPort();
+				this.client_adress = this.getLocalAddress();
+				this.client_port = this.getLocalPort();
+
+				//resposta para o novo servidor
+				OperacoesBinarias.inserirCabecalho(to_conect, 0, 0, true, false, true, false, 0, 0);
+				DatagramPacket packet3 = new DatagramPacket(to_conect, to_conect.length,server_adress,server_port);
+				this.send(packet3);
+				//resposta para o novo servidor a partir de agora
+				new Thread(new Receiver()).start();
+			}
+		}while(!done);
 	}
-	
+
 	public Socket(String host, int port) throws IOException{
-		super(port, InetAddress.getByName(host));
+		super();
+		this.is_server = false;
+		boolean done = false;
+		do{
+			//Enviar solicitação ao ServerSocket
+			byte[] to_conect = new byte[Pacote.head_payload];
+			OperacoesBinarias.inserirCabecalho(to_conect, 0, 0, false, false, true, false, 0, 0);
+			DatagramPacket packet = new DatagramPacket(to_conect, to_conect.length,InetAddress.getByName(host),port);
+			this.send(packet); //envia pacote para o servidor
+
+			//receber mensagem do socket especial de servidor criado para comunicalçao
+			DatagramPacket packet2  = new DatagramPacket(new byte[Pacote.default_size], Pacote.default_size);
+			this.receive(packet2);
+			byte[] temp = packet2.getData();
+			if(OperacoesBinarias.extrairSYN(temp) && OperacoesBinarias.extrairACK(temp)){
+				done  = true;
+				this.server_adress = packet2.getAddress();
+				this.server_port = packet2.getPort();
+				this.client_adress = this.getLocalAddress();
+				this.client_port = this.getLocalPort();
+
+				//resposta para o novo servidor
+				OperacoesBinarias.inserirCabecalho(to_conect, 0, 0, true, false, true, false, 0, 0);
+				DatagramPacket packet3 = new DatagramPacket(to_conect, to_conect.length,server_adress,server_port);
+				this.send(packet3);
+				//resposta para o novo servidor a partir de agora
+				new Thread(new Receiver()).start();
+			}
+		}while(!done);
 	}
-	
 	//fim dos construtores reais
-	
+
+	//Soclet especial criado por um ServerSocket
+	public Socket(InetAddress client_adress, int client_port, boolean isServer) throws IOException{
+		boolean done = false;
+
+		do{
+			this.is_server = true; //Sou um Socket do servidor
+			byte[] to_cliente = new byte[Pacote.head_payload];
+			OperacoesBinarias.inserirCabecalho(to_cliente, 0, 0, true, false, true, false, 0, 0);
+			DatagramPacket packet = new DatagramPacket(to_cliente, to_cliente.length, client_adress, client_port);
+			this.send(packet); //envio mensagem de apresentação ao meu novo cliente
+
+			//Seto meus endereços
+			this.server_adress = this.getLocalAddress();
+			this.server_port = this.getLocalPort();
+
+			//Recebo confirmação do cliente
+			DatagramPacket temp  = new DatagramPacket(new byte[Pacote.head_payload], Pacote.head_payload);
+			this.receive(temp);
+			if(OperacoesBinarias.extrairACK(temp.getData()) && OperacoesBinarias.extrairSYN(temp.getData())){
+				done = true;
+				this.client_adress = temp.getAddress();
+				this.client_port = temp.getPort();
+
+				//inicio o processo de inicialização da classe Socket sendo um server
+				this.send_base.set(0);
+				this.nextseqnum.set(0);
+
+				new Thread(new Receiver()).start(); //Cria um receptor de ACKs
+				new Thread(new Sender()).start(); //Cria uma thread responsável pelo envio de pacotes
+				
+				is_connected = true;
+			}
+		}while(!done);
+
+	}
+
 	//Server
 	public Socket(int port) throws IOException{
 		super(port);
@@ -225,12 +317,12 @@ public class Socket extends DatagramSocket{
 		@Override
 		public void run() {
 			while(!close.get()){
-				
+
 				if(nextseqnum.get()<=(send_base.get()+cwin.get())){//verifico se existe espaço dentro da janela para criar um pacote
-					
+
 					byte[] to_packet = new byte[Pacote.default_size]; //array de bytes com dados lidos
 					int as_read = 0; //inteiro para ver quantos bytes foram lidos
-					
+
 					try {
 						as_read = read_internal(to_packet, Pacote.head_payload, Pacote.util_load);							
 					} catch (IOException e) {
@@ -240,7 +332,7 @@ public class Socket extends DatagramSocket{
 					}
 
 					if(as_read>0){
-												
+
 						OperacoesBinarias.inserirCabecalho(to_packet, nextseqnum.get(), 0, false, false, false, false, as_read, 0); //inserção de cabeçalh
 						DatagramPacket packet = new DatagramPacket(to_packet, Pacote.default_size,client_adress,client_port);
 						Pacote pacote = new Pacote(packet,System.currentTimeMillis(),as_read); //Cria pacote de buffer
@@ -305,7 +397,7 @@ public class Socket extends DatagramSocket{
 
 					if(OperacoesBinarias.extrairFIN(buffer)){
 						close.set(true);
-						internal_close();
+						Socket.this.close();
 					}else if(OperacoesBinarias.extrairSYN(buffer)){
 
 					}else if(OperacoesBinarias.extrairACK(buffer)){
@@ -332,7 +424,7 @@ public class Socket extends DatagramSocket{
 									}
 								}
 							}
-							
+
 							if(key>estimateRTT_for_packet.get() && estimateRTT_process.get() && temp!=null){
 								long temp_SampleRTT = System.currentTimeMillis() - temp.send_time;//Calculo sampleRTT
 								EstimatedRTT = (long) ((EstimatedRTT*0.875)+(0.125*temp_SampleRTT)); //Use para Estimar o proximoRTT
@@ -340,7 +432,7 @@ public class Socket extends DatagramSocket{
 								timeout.set(EstimatedRTT+(4*DevRTT));//E altere o timeout
 								estimateRTT_process.set(false);
 							}
-							
+
 						}else{
 							System.out.println("Recebi um ACK de um host estranho. Cuidado a rede pode estar sendo invadida! ^~^");
 						}
@@ -419,7 +511,7 @@ public class Socket extends DatagramSocket{
 								restam_prox_cwin.set(1);
 							}
 							timeouts++;
-							
+
 							synchronized (sinc_send_socket) {
 								try {
 									int indice = 0;
@@ -456,18 +548,18 @@ public class Socket extends DatagramSocket{
 			repVelo = (repVelo * 0.825) + ((velocidade.getAndSet(0) / 1024)*0.175);
 
 			System.out.println((int) repVelo + " Kb/s");
-			
+
 			if(close.get()){
 				this.cancel();
 			}
 		}
 	}
-	
+
 	private class Transfered extends TimerTask{
 		@Override
 		public void run() {
 			System.out.println("Bytes transferidos com sucesso: "+ last_send.get());
-			
+
 			if(close.get()){
 				this.cancel();
 			}
