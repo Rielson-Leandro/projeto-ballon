@@ -163,6 +163,7 @@ public class Socket {
 		sender_t.start();
 		receiver_t.start();
 //		new Timer().scheduleAtFixedRate(new UpdateTimers(),0, update_timers_rate);
+		new Timer().scheduleAtFixedRate(new Transfered(), 1000, 1000);
 
 	}
 
@@ -438,10 +439,9 @@ public class Socket {
 			if(last_send.get()<1024){
 				System.out.println(last_send.get()+" KB");
 			}else if(last_send.get()<1048576){
-				System.out.println(last_send);
+				System.out.println((last_send.get()/1024)+" MB");
 			}else{
-				
-				
+				System.out.println((last_send.get()/(1024*1024))+" GB");			
 			}
 		}
 	}

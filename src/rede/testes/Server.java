@@ -8,8 +8,8 @@ import rede.Socket;
 
 public class Server {
 	public static void main(String[] args) throws IOException, InterruptedException {
-		Socket socket = new Socket(3001);
-		FileInputStream in = new FileInputStream("rac2011.iso");
+		Socket socket = new Socket(3000);
+		FileInputStream in = new FileInputStream("Geeks.wmv");
 		boolean continua = true;
 
 		while(in.available()>0){
@@ -19,7 +19,7 @@ public class Server {
 				int quantos_leu = in.read(buffer);
 				socket.write(buffer, 0, quantos_leu);
 			}else{
-				System.out.println("Buffer cheio");
+//				System.out.println("Buffer cheio");
 				Thread.sleep(3000);
 			}
 		}
