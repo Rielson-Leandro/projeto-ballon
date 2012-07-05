@@ -171,7 +171,7 @@ public class Socket{
 
 	//Contrutores reais
 	public Socket(InetAddress address, int port) throws IOException{
-		super();
+		real_socket = new DatagramSocket();
 		this.is_server = false;
 		boolean done = false;
 		do{
@@ -205,7 +205,7 @@ public class Socket{
 	}
 
 	public Socket(String host, int port) throws IOException{
-		super();
+		real_socket = new DatagramSocket();
 		this.is_server = false;
 		boolean done = false;
 		do{
