@@ -272,6 +272,7 @@ public class Socket extends DatagramSocket{
 					}
 				}
 			}
+			System.out.println("Sender encerrando...");
 		}
 	}
 
@@ -373,6 +374,7 @@ public class Socket extends DatagramSocket{
 					close.set(true);
 				}
 			}
+			System.out.println("Receiver Encerrado...");
 		}
 
 	}
@@ -384,7 +386,7 @@ public class Socket extends DatagramSocket{
 		@Override
 		public void run() {
 
-			while(continua){
+			while(continua && !close.get()){
 
 				try {
 					Thread.sleep(Math.max(timeout.get(),min_timeout)); //thread dorme para simular timeout
@@ -441,7 +443,10 @@ public class Socket extends DatagramSocket{
 			repVelo = (repVelo * 0.825) + ((velocidade.getAndSet(0) / 1024)*0.175);
 
 			System.out.println((int) repVelo + " Kb/s");
-
+			
+			if(close.get()){
+				this.cancel();
+			}
 		}
 	}
 	
@@ -449,6 +454,10 @@ public class Socket extends DatagramSocket{
 		@Override
 		public void run() {
 			System.out.println("Bytes transferidos com sucesso: "+ last_send.get());
+			
+			if(close.get()){
+				this.cancel();
+			}
 		}
 	}
 }
