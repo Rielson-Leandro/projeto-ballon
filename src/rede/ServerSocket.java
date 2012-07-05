@@ -8,7 +8,7 @@ import java.net.SocketException;
 public class ServerSocket extends DatagramSocket {
 	int listerningPort;
 	boolean close;
-	ServerSocket(int listerningPort) throws SocketException{
+	public ServerSocket(int listerningPort) throws SocketException{
 		super(listerningPort);
 		this.close = false;
 	}
