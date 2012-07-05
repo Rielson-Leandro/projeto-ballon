@@ -5,11 +5,13 @@ import java.io.FileInputStream;
 import java.io.IOException;
 
 import rede.Pacote;
+import rede.ServerSocket;
 import rede.Socket;
 
 public class Server {
 	public static void main(String[] args) throws IOException, InterruptedException {
-		Socket socket = new Socket(3000);
+		ServerSocket serverSocket = new ServerSocket(3000);
+		Socket socket = serverSocket.accept();
 		File file = new File("rac2011.iso");
 		FileInputStream in = new FileInputStream(file);
 		boolean continua = true;
