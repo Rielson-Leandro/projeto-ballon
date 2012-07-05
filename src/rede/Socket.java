@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 
-public class Socket extends DatagramSocket{
+public class Socket {
 	//Socket do lado client
 	private int server_port; //Usado tambem do lado server;
 	private InetAddress server_adress;
@@ -23,6 +23,9 @@ public class Socket extends DatagramSocket{
 	//Socket do lado servidor;
 	private int client_port; //Usado tambem do lado cliente;
 	private InetAddress client_adress;
+
+	//Socket por onde as informações iram passar
+	private DatagramSocket real_socket;
 
 	//dados para controle de envio
 	private AtomicInteger send_base = new AtomicInteger(0); //base da janela de congestionamento
@@ -40,8 +43,8 @@ public class Socket extends DatagramSocket{
 	AtomicLong temp_SampleRTT = new AtomicLong(0);
 	AtomicLong last_send = new AtomicLong(0); //valor do ultimo byte que se tem certeza que foi recebido pelo cliente
 
-	private long min_timeout = 500;
-	private long EstimatedRTT = 500;
+	private long min_timeout = 1000;
+	private long EstimatedRTT = 1000;
 	private long DevRTT = 20;
 
 	private AtomicInteger send_packets_cont = new AtomicInteger();
@@ -140,11 +143,11 @@ public class Socket extends DatagramSocket{
 
 	//Server
 	public Socket(int port) throws IOException{
-		super(port);
 		this.server_adress = InetAddress.getByName("localhost");
 		this.server_port = port;
+		this.real_socket = new DatagramSocket(port);
 		DatagramPacket temp  = new DatagramPacket(new byte[Pacote.head_payload], Pacote.head_payload);
-		this.receive(temp);
+		real_socket.receive(temp);
 		this.client_adress = temp.getAddress();
 		this.client_port = temp.getPort();
 
@@ -166,13 +169,13 @@ public class Socket extends DatagramSocket{
 
 	//Cliente
 	public Socket(int server_port, InetAddress server) throws IOException{
-		super();
 		this.server_adress = server;
 		this.server_port = server_port;
+		this.real_socket = new DatagramSocket();
 		DatagramPacket temp  = new DatagramPacket(new byte[Pacote.head_payload], Pacote.head_payload,this.server_adress,this.server_port);
-		this.send(temp);
-		this.client_adress = this.getLocalAddress();
-		this.client_port = this.getLocalPort();
+		real_socket.send(temp);
+		this.client_adress = real_socket.getLocalAddress();
+		this.client_port = real_socket.getLocalPort();
 
 		new Thread(new Receiver()).start();
 		new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
@@ -215,7 +218,7 @@ public class Socket extends DatagramSocket{
 
 						synchronized (sinc_send_socket) { //adquire reserva do socket para enviar pacote
 							try {
-								send(packet);
+								real_socket.send(packet);
 								if(!timer_run.get()){//se nenhum temporizador esta ativo ativa um
 									timer_run.set(true);
 									new Thread(new Timeout()).start();
@@ -255,7 +258,7 @@ public class Socket extends DatagramSocket{
 				DatagramPacket packet = new DatagramPacket(buffer, Pacote.default_size);
 
 				try {
-					receive(packet); //recebe um pacote
+					real_socket.receive(packet); //recebe um pacote
 
 					int key = OperacoesBinarias.extrairNumeroReconhecimento(buffer);
 					int seqNum = OperacoesBinarias.extrairNumeroSequencia(buffer);
@@ -312,7 +315,7 @@ public class Socket extends DatagramSocket{
 							OperacoesBinarias.inserirCabecalho(to_ack, 0, seqNum, true, false, false, false, 0, rcv_base.get()+rwin.get());
 							DatagramPacket ack = new DatagramPacket(to_ack, Pacote.head_payload,server_adress,server_port);
 							synchronized (sinc_send_socket) { //envia ack
-								send(ack);
+								real_socket.send(ack);
 							}
 
 							if(seqNum==rcv_base.get()){ //se temos o proximo pacote esperado
@@ -379,7 +382,7 @@ public class Socket extends DatagramSocket{
 								try {
 									int indice = 0;
 									while(indice<send_packet_buffer.size() && !send_packet_buffer.isEmpty() && !send_packet_buffer.get(indice).isEnviado()){
-										send(send_packet_buffer.get(indice).setSend_time_and_getme(System.currentTimeMillis()).pkt);
+										real_socket.send(send_packet_buffer.get(indice).setSend_time_and_getme(System.currentTimeMillis()).pkt);
 										indice++;
 									}
 								} catch (IOException e) {
