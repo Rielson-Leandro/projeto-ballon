@@ -5,7 +5,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
 
-public class ServerSocket extends Socket{
+public class ServerSocket extends newSocket{
 	DatagramSocket real_socket;
 	boolean close;
 	
@@ -13,7 +13,7 @@ public class ServerSocket extends Socket{
 		super(listerningPort);
 	}
 
-	public Socket accept() throws IOException{
+	public newSocket accept() throws IOException{
 		boolean done = false;
 		
 		do{
