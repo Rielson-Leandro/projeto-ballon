@@ -38,19 +38,19 @@ public class Socket{
 	private AtomicInteger send_base = new AtomicInteger(0); //base da janela de congestionamento
 	private AtomicInteger nextseqnum = new AtomicInteger(0); //proximo numero de sequencia
 	private AtomicInteger cwin = new AtomicInteger(10); //janela de congestionamento
-	private AtomicInteger ssthresh = new AtomicInteger(128); //limiar de partidade lenta
+	private AtomicInteger ssthresh = new AtomicInteger(64); //limiar de partidade lenta
 	private AtomicInteger quantos_zerou = new AtomicInteger(0);
 	private AtomicInteger restam_prox_cwin = new AtomicInteger(1);	
 	private AtomicLong timeout = new AtomicLong(1000);
 	private AtomicBoolean estimateRTT_process = new AtomicBoolean(); //variavel para detectar que se esta estimando um RTT
 	private AtomicInteger estimateRTT_for_packet = new AtomicInteger(0); //numero do pacote para o qual se esta estimando o RTT
 
-	private int max_win = 256;
+	private int max_win = 64;
 
 	AtomicLong temp_SampleRTT = new AtomicLong(0);
 	AtomicLong last_send = new AtomicLong(0); //valor do ultimo byte que se tem certeza que foi recebido pelo cliente
 
-	private long min_timeout = 400;
+	private long min_timeout = 500;
 	private long EstimatedRTT = 500;
 	private long DevRTT = 20;
 
@@ -324,7 +324,7 @@ public class Socket{
 
 									if(!temp.isEnviado()){
 										temp.setEnviado(true);
-										cwin.set(Math.min(cwin.get()+10, max_win));
+										cwin.set(Math.min(cwin.get()+1, max_win));
 									}
 								}
 							}
@@ -411,9 +411,9 @@ public class Socket{
 
 						if(!send_packet_buffer.get(0).isEnviado()){
 
-							if(timeouts%3==0){
-								ssthresh.set((cwin.get()/2)+10); // limiar de envio e setado pela metade
-								cwin.set(cwin.get()/2); //janela de congestionamento e setada para 1MSS
+							if(timeouts%2==0){
+								ssthresh.set((cwin.get()/2)+1); // limiar de envio e setado pela metade
+								cwin.set(1); //janela de congestionamento e setada para 1MSS
 								quantos_zerou.set(0);
 								restam_prox_cwin.set(1);
 							}
