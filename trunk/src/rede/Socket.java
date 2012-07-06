@@ -184,8 +184,8 @@ public class Socket{
 		real_socket = new DatagramSocket();
 		this.client_port = this.server_port = porta_servidor;
 		this.client_adress = this.server_adress = endereco_servidor;
-		this.local_adress = real_socket.getLocalAddress();
-		this.local_port = real_socket.getLocalPort();
+		this.local_adress = real_socket.getInetAddress();
+		this.local_port = real_socket.getPort();
 		DatagramPacket receiver = new DatagramPacket(new byte[Pacote.head_payload], Pacote.head_payload);
 		while(!connect.get()){
 			real_socket.send(new DatagramPacket(SYN_BYTE, Pacote.head_payload, endereco_servidor, porta_servidor));
@@ -209,8 +209,8 @@ public class Socket{
 	public void setCliente(int portaCliente, InetAddress enderecoCliente){
 		this.server_adress = this.client_adress = enderecoCliente;
 		this.server_port = this.client_port = portaCliente;
-		this.local_adress = real_socket.getLocalAddress();
-		this.local_port = real_socket.getLocalPort();
+		this.local_adress = real_socket.getInetAddress();
+		this.local_port = real_socket.getPort();
 		new Thread(new Receiver()).start();
 		new Thread(new Sender()).start();
 //		new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
