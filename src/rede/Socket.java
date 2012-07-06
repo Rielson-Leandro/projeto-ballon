@@ -24,7 +24,10 @@ public class Socket{
 	//Socket do lado servidor;
 	private int client_port; //Usado tambem do lado cliente;
 	private InetAddress client_adress;
-
+	
+	private int local_port;
+	private InetAddress local_adress;
+	
 	protected DatagramSocket real_socket;
 
 	private boolean is_server = false;	
@@ -179,8 +182,10 @@ public class Socket{
 	//usado pelo cliente para indicar criar um socket para o servidor
 	public Socket(int porta_servidor, InetAddress endereco_servidor) throws IOException {
 		real_socket = new DatagramSocket();
-		this.server_port = porta_servidor;
-		this.server_adress = endereco_servidor;
+		this.client_port = this.server_port = porta_servidor;
+		this.client_adress = this.server_adress = endereco_servidor;
+		this.local_adress = real_socket.getLocalAddress();
+		this.local_port = real_socket.getLocalPort();
 		DatagramPacket receiver = new DatagramPacket(new byte[Pacote.head_payload], Pacote.head_payload);
 		while(!connect.get()){
 			real_socket.send(new DatagramPacket(SYN_BYTE, Pacote.head_payload, endereco_servidor, porta_servidor));
@@ -202,8 +207,10 @@ public class Socket{
 	}
 
 	public void setCliente(int portaCliente, InetAddress enderecoCliente){
-		this.client_adress = enderecoCliente;
-		this.client_port = portaCliente;
+		this.server_adress = this.client_adress = enderecoCliente;
+		this.server_port = this.client_port = portaCliente;
+		this.local_adress = real_socket.getLocalAddress();
+		this.local_port = real_socket.getLocalPort();
 		new Thread(new Receiver()).start();
 		new Thread(new Sender()).start();
 //		new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
@@ -301,7 +308,7 @@ public class Socket{
 
 					}else if(OperacoesBinarias.extrairACK(buffer)){
 
-						if(packet.getAddress().equals(client_adress) && packet.getPort()==client_port){ //tenho um ack de quem me comunico
+						if(packet.getAddress().equals(local_adress) && packet.getPort()==local_port){ //tenho um ack de quem me comunico
 
 							Pacote temp = null;
 
@@ -340,7 +347,7 @@ public class Socket{
 
 					}else{ //temos um pacote com dados
 
-						if(packet.getAddress().equals(server_adress) && packet.getPort()==server_port){ //tenho um ack de quem me comunico
+						if(packet.getAddress().equals(local_adress) && packet.getPort()==local_port){ //tenho um ack de quem me comunico
 							//cria ack em resposta ao dado recebido
 							byte[] to_ack = new byte[Pacote.head_payload];
 							OperacoesBinarias.inserirCabecalho(to_ack, 0, seqNum, true, false, false, false, 0, rcv_base.get()+rwin.get());
