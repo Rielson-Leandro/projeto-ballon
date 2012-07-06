@@ -8,12 +8,13 @@ import rede.Pacote;
 import rede.ServerSocket;
 import rede.Socket;
 import rede.Socket2;
+import rede.newSocket;
 
 public class Server {
 	public static void main(String[] args) throws IOException, InterruptedException {
-//		ServerSocket serverSocket = new ServerSocket(3001);
-//		Socket socket = serverSocket.accept();
-		Socket2 socket = new Socket2(3001);
+		ServerSocket serverSocket = new ServerSocket(3001);
+		newSocket socket = serverSocket.accept();
+//		Socket2 socket = new Socket2(3001);
 		File file = new File("rac2011.iso");
 		FileInputStream in = new FileInputStream(file);
 
@@ -28,7 +29,7 @@ public class Server {
 			}
 		}
 		
-		while(socket.get_last_send()<file.length()){
+		while(socket.bytesTransferidos()<file.length()){
 			Thread.sleep(1000);
 		}
 		socket.close();
