@@ -2,6 +2,8 @@ package rede;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -33,7 +35,11 @@ public class Socket{
 
 	private boolean is_server = false;	
 	private boolean is_connected = false;
-
+	private boolean use_file = false;
+	//Teste
+	FileInputStream stream;
+	FileOutputStream stream2;
+	
 	//dados para controle de envio
 	private AtomicInteger send_base = new AtomicInteger(0); //base da janela de congestionamento
 	private AtomicInteger nextseqnum = new AtomicInteger(0); //proximo numero de sequencia
@@ -200,12 +206,42 @@ public class Socket{
 		new Thread(new Sender()).start();
 		new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
 	}
+	
+	public Socket(int porta_servidor, InetAddress endereco_servidor,FileInputStream arquivo,FileOutputStream arquivo_saida) throws IOException {
+		stream = arquivo;
+		stream2 = arquivo_saida;
+		use_file = true;
+		real_socket = new DatagramSocket();
+		this.client_port = this.server_port = porta_servidor;
+		this.client_adress = this.server_adress = endereco_servidor;
+		DatagramPacket receiver = new DatagramPacket(new byte[Pacote.head_payload], Pacote.head_payload);
+		while(!connect.get()){
+			real_socket.send(new DatagramPacket(SYN_BYTE, Pacote.head_payload, endereco_servidor, porta_servidor));
+			real_socket.send(new DatagramPacket(SYN_BYTE, Pacote.head_payload, endereco_servidor, porta_servidor));
+			real_socket.receive(receiver);
+			if(receiver.getAddress().equals(endereco_servidor) && receiver.getPort()==porta_servidor){
+				connect.set(true);
+				address_comparable = receiver.getSocketAddress();
+			}
+		}
 
+		new Thread(new Receiver()).start();
+		new Thread(new Sender()).start();
+		new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
+	}
+	
 	//usado pelo servidor para ficar escutando na porta especifica
 	public Socket(int port) throws IOException {
 		real_socket = new DatagramSocket(port);
 	}
-
+	
+	public Socket(int port, FileInputStream arquivo,FileOutputStream arquivo_copy) throws IOException {
+		use_file = true;
+		stream = arquivo;
+		stream2 = arquivo_copy;
+		real_socket = new DatagramSocket(port);
+	}
+	
 	public void setCliente(int portaCliente, InetAddress enderecoCliente) throws UnknownHostException{
 		this.server_adress = this.client_adress = enderecoCliente;
 		this.server_port = this.client_port = portaCliente;
@@ -228,7 +264,12 @@ public class Socket{
 					int as_read = 0; //inteiro para ver quantos bytes foram lidos
 
 					try {
-						as_read = read_internal(to_packet, Pacote.head_payload, Pacote.util_load);							
+						if(use_file){
+							as_read = stream.read(to_packet,Pacote.head_payload,Pacote.util_load);
+						}else{
+							as_read = read_internal(to_packet, Pacote.head_payload, Pacote.util_load);
+						}
+													
 					} catch (IOException e) {
 						System.out.println("Problemas com buffers internos");
 						System.out.println("Encerrando conexão...");
@@ -366,7 +407,11 @@ public class Socket{
 									seqNum = OperacoesBinarias.extrairNumeroSequencia(dados);
 									velocidade.getAndAdd(dataLength);
 									rcv_base.incrementAndGet(); //incrementa a base de recepção para o proximo pacote
-									write_internal(dados, Pacote.head_payload,dataLength);
+									if(use_file){
+										stream2.write(dados, Pacote.head_payload, dataLength);
+									}else{
+										write_internal(dados, Pacote.head_payload,dataLength);
+									}
 								}
 
 							}else if(seqNum>rcv_base.get()){ //se não temos o proximo pacote esperado
