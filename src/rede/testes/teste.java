@@ -45,8 +45,10 @@ public class teste {
 				try {
 					byte[] to_string = new byte[Pacote.default_size];
 					int leu = socket.read(to_string, 0, to_string.length);
-					String string = new String(to_string, 0, leu);
-					System.out.println(string);
+					if(leu!=-1){
+						String string = new String(to_string, 0, leu);
+						System.out.println(string);
+					}
 				} catch (IOException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
