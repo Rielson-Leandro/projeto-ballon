@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -184,7 +185,7 @@ public class Socket{
 		real_socket = new DatagramSocket();
 		this.client_port = this.server_port = porta_servidor;
 		this.client_adress = this.server_adress = endereco_servidor;
-		this.local_adress = real_socket.getInetAddress();
+		this.local_adress = InetAddress.getLocalHost();
 		this.local_port = real_socket.getPort();
 		DatagramPacket receiver = new DatagramPacket(new byte[Pacote.head_payload], Pacote.head_payload);
 		while(!connect.get()){
@@ -206,11 +207,11 @@ public class Socket{
 		real_socket = new DatagramSocket(port);
 	}
 
-	public void setCliente(int portaCliente, InetAddress enderecoCliente){
+	public void setCliente(int portaCliente, InetAddress enderecoCliente) throws UnknownHostException{
 		this.server_adress = this.client_adress = enderecoCliente;
 		this.server_port = this.client_port = portaCliente;
-		this.local_adress = real_socket.getInetAddress();
-		this.local_port = real_socket.getPort();
+		this.local_adress = InetAddress.getLocalHost();
+		this.local_port = real_socket.getLocalPort();
 		new Thread(new Receiver()).start();
 		new Thread(new Sender()).start();
 //		new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
@@ -377,12 +378,6 @@ public class Socket{
 							}else{
 								System.out.println("Retransmissao");
 							}
-						}else{
-							System.out.println("MERDAAAAAAAAAAAAA");
-							System.out.println(packet.getAddress());
-							System.out.println(packet.getPort());
-							System.out.println(local_adress);
-							System.out.println(local_port);
 						}
 					}
 				} catch (IOException e) {
