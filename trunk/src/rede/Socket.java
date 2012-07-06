@@ -377,6 +377,12 @@ public class Socket{
 							}else{
 								System.out.println("Retransmissao");
 							}
+						}else{
+							System.out.println("MERDAAAAAAAAAAAAA");
+							System.out.println(packet.getAddress());
+							System.out.println(packet.getPort());
+							System.out.println(local_adress);
+							System.out.println(local_port);
 						}
 					}
 				} catch (IOException e) {
