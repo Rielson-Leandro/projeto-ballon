@@ -139,14 +139,15 @@ public class newSocket{
 		buffer_envio = new Hashtable<Integer, Pacote>();
 		lockSend = new Object();
 		lockJanela = new Object();
-		new Thread(new ReceiverServer()).start();
-		new Thread(new Sender()).start();
 	}
 
 	public void setCliente(int portaCliente, InetAddress enderecoCliente){
 		this.endereco_cliente = enderecoCliente;
 		this.porta_cliente = portaCliente;
+		new Thread(new ReceiverServer()).start();
+		new Thread(new Sender()).start();
 	}
+
 
 	public boolean getEstado(){
 		return parar;
@@ -268,9 +269,7 @@ public class newSocket{
 							byte[] to_ack = new byte[Pacote.head_payload];
 							OperacoesBinarias.inserirCabecalho(to_ack, 0, seqNum, true, false, false, false, 0, 0);
 							DatagramPacket ack = new DatagramPacket(to_ack, Pacote.head_payload,endereco_servidor,porta_servidor);
-							synchronized (lockSend) { //envia ack
-								socket.send(ack);
-							}
+							socket.send(ack);
 
 							if(seqNum==base_recepcao){
 								write_internal(packet.getData(), Pacote.head_payload, Qbytes);
