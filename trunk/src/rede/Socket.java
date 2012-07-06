@@ -26,7 +26,7 @@ public class Socket{
 	private InetAddress client_adress;
 
 	protected DatagramSocket real_socket;
-	
+
 	private boolean is_server = false;	
 	private boolean is_connected = false;
 
@@ -46,8 +46,8 @@ public class Socket{
 	AtomicLong temp_SampleRTT = new AtomicLong(0);
 	AtomicLong last_send = new AtomicLong(0); //valor do ultimo byte que se tem certeza que foi recebido pelo cliente
 
-	private long min_timeout = 750;
-	private long EstimatedRTT = 1000;
+	private long min_timeout = 400;
+	private long EstimatedRTT = 500;
 	private long DevRTT = 20;
 
 	private AtomicInteger send_packets_cont = new AtomicInteger();
@@ -60,14 +60,14 @@ public class Socket{
 
 	AtomicBoolean close = new AtomicBoolean(false); //booleano com condição de parada das threads
 	AtomicBoolean connect = new AtomicBoolean(false);
-	
+
 	AtomicLong velocidade = new AtomicLong(0);
 
 	byte[] SYN_BYTE = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0};
 	byte[] SYN_ACK_BYTE = {0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0};
 	byte[] FIN_BYTE = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1};
 	byte[] FIN_ACK_BYTE = {0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1};
-	
+
 	//Objetos para sincronização
 	Object buffer_cliente = new Object();
 	Object buffer_server = new Object();
@@ -175,38 +175,41 @@ public class Socket{
 	public void reset(){
 		this.last_send.set(0);
 	}
-	
+
 	//usado pelo cliente para indicar criar um socket para o servidor
-		public Socket(int porta_servidor, InetAddress endereco_servidor) throws IOException {
-			real_socket = new DatagramSocket();
-			this.server_port = porta_servidor;
-			this.server_adress = endereco_servidor;
-			DatagramPacket receiver = new DatagramPacket(new byte[Pacote.head_payload], Pacote.head_payload);
-			while(!connect.get()){
-				real_socket.send(new DatagramPacket(SYN_BYTE, Pacote.head_payload, endereco_servidor, porta_servidor));
-				real_socket.send(new DatagramPacket(SYN_BYTE, Pacote.head_payload, endereco_servidor, porta_servidor));
-				real_socket.receive(receiver);
-				if(receiver.getAddress().equals(endereco_servidor) && receiver.getPort()==porta_servidor){
-					connect.set(true);
-				}
+	public Socket(int porta_servidor, InetAddress endereco_servidor) throws IOException {
+		real_socket = new DatagramSocket();
+		this.server_port = porta_servidor;
+		this.server_adress = endereco_servidor;
+		DatagramPacket receiver = new DatagramPacket(new byte[Pacote.head_payload], Pacote.head_payload);
+		while(!connect.get()){
+			real_socket.send(new DatagramPacket(SYN_BYTE, Pacote.head_payload, endereco_servidor, porta_servidor));
+			real_socket.send(new DatagramPacket(SYN_BYTE, Pacote.head_payload, endereco_servidor, porta_servidor));
+			real_socket.receive(receiver);
+			if(receiver.getAddress().equals(endereco_servidor) && receiver.getPort()==porta_servidor){
+				connect.set(true);
 			}
+		}
+
+		new Thread(new Receiver()).start();
+		new Thread(new Sender()).start();
+		new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
+	}
+
+	//usado pelo servidor para ficar escutando na porta especifica
+	public Socket(int port) throws IOException {
+		real_socket = new DatagramSocket(port);
+	}
+
+	public void setCliente(int portaCliente, InetAddress enderecoCliente){
+		this.client_adress = enderecoCliente;
+		this.client_port = portaCliente;
+		new Thread(new Receiver()).start();
+		new Thread(new Sender()).start();
+		new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
 		
-			new Thread(new Receiver()).start();
-			new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
-		}
+	}
 
-		//usado pelo servidor para ficar escutando na porta especifica
-		public Socket(int port) throws IOException {
-			real_socket = new DatagramSocket(port);
-		}
-
-		public void setCliente(int portaCliente, InetAddress enderecoCliente){
-			this.client_adress = enderecoCliente;
-			this.client_port = portaCliente;
-			new Thread(new Receiver()).start();
-			new Thread(new Sender()).start();
-		}
-	
 	//classes internas
 	private class Sender extends Thread{
 
@@ -316,7 +319,7 @@ public class Socket{
 
 									if(!temp.isEnviado()){
 										temp.setEnviado(true);
-										cwin.set(Math.min(cwin.get()+1, max_win));
+										cwin.set(Math.min(cwin.get()+10, max_win));
 									}
 								}
 							}
@@ -390,6 +393,7 @@ public class Socket{
 
 				try {
 					Thread.sleep(Math.max(timeout.get(),min_timeout)); //thread dorme para simular timeout
+					//					Thread.sleep(200);
 				} catch (InterruptedException e) {
 					System.out.println("Erro no timeout");
 				}
