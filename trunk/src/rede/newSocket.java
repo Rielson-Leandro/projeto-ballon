@@ -11,9 +11,12 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class newSocket extends DatagramSocket {
+public class newSocket{
 
 	//variaveis
+
+	DatagramSocket socket;
+
 	InetAddress endereco_cliente;
 	InetAddress endereco_servidor;
 
@@ -33,7 +36,7 @@ public class newSocket extends DatagramSocket {
 	long EstimatedRTT = 1000;
 	long timeout = 1000;
 	long velocidade = 0;
-	
+
 	boolean conectado = false;
 	boolean parar = false;
 	boolean estimando_RTT = false;
@@ -67,7 +70,7 @@ public class newSocket extends DatagramSocket {
 	public long resetTransferencias(){
 		return this.bytesTransferidos = 0;
 	}
-	
+
 	//Metodos para leitura e escrita nos buffers
 	AtomicInteger remain_buffer_space = new AtomicInteger(buffer_size);
 
@@ -112,14 +115,14 @@ public class newSocket extends DatagramSocket {
 
 	//usado pelo cliente para indicar criar um socket para o servidor
 	public newSocket(int porta_servidor, InetAddress endereco_servidor) throws IOException {
-		super();
+		socket = new DatagramSocket();
 		this.porta_servidor = porta_servidor;
 		this.endereco_servidor = endereco_servidor;
 		DatagramPacket receiver = new DatagramPacket(new byte[Pacote.head_payload], Pacote.head_payload);
 		while(!conectado){
-			send(new DatagramPacket(SYN_BYTE, Pacote.head_payload, endereco_servidor, porta_servidor));
-			send(new DatagramPacket(SYN_BYTE, Pacote.head_payload, endereco_servidor, porta_servidor));
-			receive(receiver);
+			socket.send(new DatagramPacket(SYN_BYTE, Pacote.head_payload, endereco_servidor, porta_servidor));
+			socket.send(new DatagramPacket(SYN_BYTE, Pacote.head_payload, endereco_servidor, porta_servidor));
+			socket.receive(receiver);
 			if(receiver.getAddress().equals(endereco_servidor) && receiver.getPort()==porta_servidor){
 				conectado=true;
 			}
@@ -132,9 +135,10 @@ public class newSocket extends DatagramSocket {
 
 	//usado pelo servidor para ficar escutando na porta especifica
 	public newSocket(int port) throws IOException {
-		super(port);
+		socket = new DatagramSocket(port);
 		buffer_envio = new Hashtable<Integer, Pacote>();
 		lockSend = new Object();
+		lockJanela = new Object();
 		new Thread(new ReceiverServer()).start();
 		new Thread(new Sender()).start();
 	}
@@ -169,7 +173,7 @@ public class newSocket extends DatagramSocket {
 							numero_seq++;
 
 							synchronized (lockSend) {
-								send(packet);
+								socket.send(packet);
 							}
 
 							if(!temporizado_rodando){
@@ -210,7 +214,7 @@ public class newSocket extends DatagramSocket {
 				try {
 					byte[] dados = new byte[Pacote.head_payload];
 					DatagramPacket packet = new DatagramPacket(dados, dados.length);
-					receive(packet);
+					socket.receive(packet);
 
 					if(packet.getAddress().equals(endereco_cliente) && packet.getPort()==porta_cliente){
 						if(OperacoesBinarias.extrairACK(packet.getData())){
@@ -254,7 +258,7 @@ public class newSocket extends DatagramSocket {
 				try {
 					byte[] dados = new byte[Pacote.default_size];
 					DatagramPacket packet = new DatagramPacket(dados, dados.length);
-					receive(packet);
+					socket.receive(packet);
 					if(packet.getAddress().equals(endereco_servidor)&& packet.getPort()==porta_servidor){
 						int seqNum = OperacoesBinarias.extrairNumeroSequencia(packet.getData());
 						int Qbytes = OperacoesBinarias.extrairComprimentoDados(packet.getData());
@@ -265,7 +269,7 @@ public class newSocket extends DatagramSocket {
 							OperacoesBinarias.inserirCabecalho(to_ack, 0, seqNum, true, false, false, false, 0, 0);
 							DatagramPacket ack = new DatagramPacket(to_ack, Pacote.head_payload,endereco_servidor,porta_servidor);
 							synchronized (lockSend) { //envia ack
-								send(ack);
+								socket.send(ack);
 							}
 
 							if(seqNum==base_recepcao){
@@ -321,7 +325,7 @@ public class newSocket extends DatagramSocket {
 									int indice = base_envio;
 									while(buffer_envio.get(base_envio)!=null && !buffer_envio.get(base_envio).is_send){
 										synchronized (lockSend) {
-											send(buffer_envio.get(indice).pkt);
+											socket.send(buffer_envio.get(indice).pkt);
 											indice++;
 										}
 									}
