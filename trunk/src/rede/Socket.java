@@ -193,7 +193,7 @@ public class Socket{
 
 		new Thread(new Receiver()).start();
 		new Thread(new Sender()).start();
-		new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
+//		new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
 	}
 
 	//usado pelo servidor para ficar escutando na porta especifica
@@ -206,7 +206,7 @@ public class Socket{
 		this.client_port = portaCliente;
 		new Thread(new Receiver()).start();
 		new Thread(new Sender()).start();
-		new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
+//		new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
 		
 	}
 
