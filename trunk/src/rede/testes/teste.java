@@ -79,11 +79,13 @@ public class teste {
 
 
 	private void kk() throws IOException{
+		FileInputStream arquivo_enviar = new FileInputStream("rac2011.iso");
+		FileOutputStream arquivo_receber = new FileOutputStream("bytes.rar");
 		rede.ServerSocket serverSocket = new ServerSocket(3001);
 		rede.Socket socket = serverSocket.accept();
 		//		Receiver receiver = new Receiver(socket);
-		new Thread(new Receiver(socket)).start();
-		new Thread(new Writer(socket)).start();
+//		new Thread(new Receiver(socket)).start();
+//		new Thread(new Writer(socket)).start();
 	}
 
 	public static void main(String[] args) throws IOException {
