@@ -33,7 +33,7 @@ public class Socket{
 	//dados para controle de envio
 	private AtomicInteger send_base = new AtomicInteger(0); //base da janela de congestionamento
 	private AtomicInteger nextseqnum = new AtomicInteger(0); //proximo numero de sequencia
-	private AtomicInteger cwin = new AtomicInteger(1); //janela de congestionamento
+	private AtomicInteger cwin = new AtomicInteger(10); //janela de congestionamento
 	private AtomicInteger ssthresh = new AtomicInteger(128); //limiar de partidade lenta
 	private AtomicInteger quantos_zerou = new AtomicInteger(0);
 	private AtomicInteger restam_prox_cwin = new AtomicInteger(1);	
@@ -402,7 +402,7 @@ public class Socket{
 
 							if(timeouts%3==0){
 								ssthresh.set((cwin.get()/2)+10); // limiar de envio e setado pela metade
-								cwin.set(1); //janela de congestionamento e setada para 1MSS
+								cwin.set(cwin.get()/2); //janela de congestionamento e setada para 1MSS
 								quantos_zerou.set(0);
 								restam_prox_cwin.set(1);
 							}

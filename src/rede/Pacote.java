@@ -10,7 +10,7 @@ public class Pacote implements Serializable {
 	DatagramPacket pkt;
 	boolean is_send;
 	public static final int head_payload = 16;
-	public static int default_size = 1492;
+	public static int default_size = 8208;
 	public static int util_load = default_size-head_payload;
 	public int dataLenth;
 	public long send_time;
