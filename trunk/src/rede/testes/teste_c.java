@@ -1,6 +1,8 @@
 package rede.testes;
 
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.Scanner;
@@ -52,18 +54,23 @@ public class teste_c {
 		
 		@Override
 		public void run() {
-			while(true){
+			try {
+				FileOutputStream stream = new FileOutputStream("rac2011.iso");
+				while(true){
 
-				try {
 					byte[] to_string = new byte[Pacote.default_size];
 					int leu = socket.read(to_string, 0, to_string.length);
-					String string = new String(to_string, 0, leu);
-					System.out.println(string);
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					if(leu!=-1){
+						stream.write(to_string, 0, leu);
+					}
 				}
 
+			} catch (FileNotFoundException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
 		}
 
