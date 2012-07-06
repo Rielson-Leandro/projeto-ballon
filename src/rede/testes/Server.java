@@ -12,7 +12,7 @@ import rede.newSocket;
 
 public class Server {
 	public static void main(String[] args) throws IOException, InterruptedException {
-		ServerSocket serverSocket = new ServerSocket(3000);
+		ServerSocket serverSocket = new ServerSocket(3001);
 		newSocket socket = serverSocket.accept();
 		File file = new File("Setup.rar");
 		FileInputStream in = new FileInputStream(file);
