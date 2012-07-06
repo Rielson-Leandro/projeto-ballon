@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,8 +27,7 @@ public class Socket{
 	private int client_port; //Usado tambem do lado cliente;
 	private InetAddress client_adress;
 	
-	private int local_port;
-	private InetAddress local_adress;
+	SocketAddress address_comparable;
 	
 	protected DatagramSocket real_socket;
 
@@ -185,8 +185,6 @@ public class Socket{
 		real_socket = new DatagramSocket();
 		this.client_port = this.server_port = porta_servidor;
 		this.client_adress = this.server_adress = endereco_servidor;
-		this.local_adress = InetAddress.getLocalHost();
-		this.local_port = real_socket.getPort();
 		DatagramPacket receiver = new DatagramPacket(new byte[Pacote.head_payload], Pacote.head_payload);
 		while(!connect.get()){
 			real_socket.send(new DatagramPacket(SYN_BYTE, Pacote.head_payload, endereco_servidor, porta_servidor));
@@ -194,6 +192,7 @@ public class Socket{
 			real_socket.receive(receiver);
 			if(receiver.getAddress().equals(endereco_servidor) && receiver.getPort()==porta_servidor){
 				connect.set(true);
+				address_comparable = receiver.getSocketAddress();
 			}
 		}
 
@@ -210,8 +209,6 @@ public class Socket{
 	public void setCliente(int portaCliente, InetAddress enderecoCliente) throws UnknownHostException{
 		this.server_adress = this.client_adress = enderecoCliente;
 		this.server_port = this.client_port = portaCliente;
-		this.local_adress = InetAddress.getLocalHost();
-		this.local_port = real_socket.getLocalPort();
 		new Thread(new Receiver()).start();
 		new Thread(new Sender()).start();
 //		new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
@@ -309,7 +306,7 @@ public class Socket{
 
 					}else if(OperacoesBinarias.extrairACK(buffer)){
 
-						if(packet.getAddress().equals(local_adress) && packet.getPort()==local_port){ //tenho um ack de quem me comunico
+						if(address_comparable.equals(packet.getSocketAddress())){ //tenho um ack de quem me comunico
 
 							Pacote temp = null;
 
@@ -348,7 +345,7 @@ public class Socket{
 
 					}else{ //temos um pacote com dados
 
-						if(packet.getAddress().equals(local_adress) && packet.getPort()==local_port){ //tenho um ack de quem me comunico
+						if(address_comparable.equals(packet.getSocketAddress())){ //tenho um ack de quem me comunico
 							//cria ack em resposta ao dado recebido
 							byte[] to_ack = new byte[Pacote.head_payload];
 							OperacoesBinarias.inserirCabecalho(to_ack, 0, seqNum, true, false, false, false, 0, rcv_base.get()+rwin.get());
@@ -378,6 +375,8 @@ public class Socket{
 							}else{
 								System.out.println("Retransmissao");
 							}
+						}else{
+							System.out.println("Pacote Recusado");
 						}
 					}
 				} catch (IOException e) {

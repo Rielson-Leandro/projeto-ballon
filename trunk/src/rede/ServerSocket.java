@@ -19,6 +19,7 @@ public class ServerSocket extends Socket{
 		DatagramPacket packet = new DatagramPacket(new byte[Pacote.head_payload], Pacote.head_payload);
 		super.real_socket.receive(packet);
 		if(OperacoesBinarias.extrairSYN(packet.getData())){
+			super.address_comparable = packet.getSocketAddress();
 			this.setCliente(packet.getPort(), packet.getAddress());
 			System.out.println("Nova solicitação de conexão");
 			System.out.println("Endereço do cliente "+ packet.getAddress());
