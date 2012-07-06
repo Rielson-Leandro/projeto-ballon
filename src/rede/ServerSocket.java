@@ -8,7 +8,8 @@ import java.net.SocketException;
 public class ServerSocket extends newSocket{
 	boolean close;
 	boolean conectado;
-
+	DatagramSocket socket;
+	
 	public ServerSocket(int listerningPort) throws IOException{
 		super(listerningPort);
 	}
@@ -21,7 +22,7 @@ public class ServerSocket extends newSocket{
 			this.setCliente(packet.getPort(), packet.getAddress());
 			System.out.println("Nova solicitação de conexão");
 			System.out.println("Endereço do cliente "+ packet.getAddress());
-			System.out.println("`Porta do cliente "+ packet.getPort());
+			System.out.println("Porta do cliente "+ packet.getPort());
 			send(new DatagramPacket(SYN_ACK_BYTE, Pacote.head_payload,packet.getAddress(),packet.getPort()));
 			send(new DatagramPacket(SYN_ACK_BYTE, Pacote.head_payload,packet.getAddress(),packet.getPort()));
 		}
