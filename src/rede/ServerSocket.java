@@ -8,29 +8,29 @@ import java.net.SocketException;
 public class ServerSocket extends newSocket{
 	DatagramSocket real_socket;
 	boolean close;
-	
+	boolean conectado;
+
 	public ServerSocket(int listerningPort) throws IOException{
 		super(listerningPort);
 	}
 
 	public newSocket accept() throws IOException{
 		boolean done = false;
-		
-		do{
-			byte[] arra_rec = new byte[Pacote.default_size];
-			DatagramPacket packet = new DatagramPacket(arra_rec, arra_rec.length);
-			real_socket.receive(packet);
-			if(OperacoesBinarias.extrairSYN(arra_rec)){
-				System.out.println("Nova solicitação de conexão");
-				System.out.println("Endereço do cliente "+ packet.getAddress());
-				System.out.println("`Porta do cliente "+ packet.getPort());
-			}
-		}while(!done);
+
+		DatagramPacket packet = new DatagramPacket(new byte[Pacote.head_payload], Pacote.head_payload);
+		real_socket.receive(packet);
+		if(OperacoesBinarias.extrairSYN(packet.getData())){
+			this.setCliente(packet.getPort(), packet.getAddress());
+			System.out.println("Nova solicitação de conexão");
+			System.out.println("Endereço do cliente "+ packet.getAddress());
+			System.out.println("`Porta do cliente "+ packet.getPort());
+			send(new DatagramPacket(SYN_ACK_BYTE, Pacote.head_payload));
+			send(new DatagramPacket(SYN_ACK_BYTE, Pacote.head_payload));
+		}
 		return this;
 	}
 
-	public void close(){
-		real_socket.close();
-		close = true;
+	public void fechar(){
+		this.close();
 	}
 }
