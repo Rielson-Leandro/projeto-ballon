@@ -1,5 +1,6 @@
 package rede.testes;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.Scanner;
@@ -21,11 +22,21 @@ public class teste_c {
 		@Override
 		public void run() {
 			while(true){
-				String to_send = in.next();
-				try {
-					socket.write(to_send.getBytes(), 0, to_send.length());
-				} catch (IOException e) {
-					e.printStackTrace();
+				while(true){
+					
+					try {
+						FileInputStream stream = new FileInputStream("bytes.rar");
+						byte[] data = new byte[Math.max(socket.buffer_avaliable(), Pacote.default_size)];
+						int leu = stream.read(data);
+						if(leu>0 && socket.buffer_avaliable()>0){
+						socket.write(data, 0, leu);
+						}else{
+							Thread.sleep(2000);
+						}
+					} catch (IOException e1) {
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
 				}
 			}
 		}
