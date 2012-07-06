@@ -14,7 +14,6 @@ public class Server {
 	public static void main(String[] args) throws IOException, InterruptedException {
 		ServerSocket serverSocket = new ServerSocket(3001);
 		newSocket socket = serverSocket.accept();
-//		Socket2 socket = new Socket2(3001);
 		File file = new File("rac2011.iso");
 		FileInputStream in = new FileInputStream(file);
 
@@ -32,7 +31,7 @@ public class Server {
 		while(socket.bytesTransferidos()<file.length()){
 			Thread.sleep(1000);
 		}
-		socket.close();
+//		socket.close();
 		System.out.println("Encerrando...");
 	}
 }
