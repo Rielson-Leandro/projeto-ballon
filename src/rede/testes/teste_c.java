@@ -78,10 +78,12 @@ public class teste_c {
 
 
 	public void kk() throws IOException{
-		Socket socket = new Socket(3000,InetAddress.getByName("172.20.4.99"));
+		FileInputStream arquivo_envia = new FileInputStream("bytes.rar");
+		FileOutputStream arquivo_recebe = new FileOutputStream("rac2011.iso");
+		Socket socket = new Socket(3000,InetAddress.getByName("172.20.4.99"),arquivo_envia,arquivo_recebe);
 //		Receiver receiver = new Receiver(socket);
-		new Thread(new Receiver(socket)).start();
-		new Thread(new Writer(socket)).start();
+//		new Thread(new Receiver(socket)).start();
+//		new Thread(new Writer(socket)).start();
 	}
 	
 	public static void main(String[] args) throws IOException {
