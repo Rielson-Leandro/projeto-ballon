@@ -14,7 +14,7 @@ public class Server {
 	public static void main(String[] args) throws IOException, InterruptedException {
 		ServerSocket serverSocket = new ServerSocket(3001);
 		Socket socket = serverSocket.accept();
-		File file = new File("G.zip");
+		File file = new File("rac2011.iso");
 		FileInputStream in = new FileInputStream(file);
 
 		while(in.available()>0){
