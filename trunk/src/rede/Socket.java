@@ -8,6 +8,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -24,7 +25,7 @@ public class Socket{
 	private int client_port; //Usado tambem do lado cliente;
 	private InetAddress client_adress;
 
-	private DatagramSocket real_socket;
+	protected DatagramSocket real_socket;
 	
 	private boolean is_server = false;	
 	private boolean is_connected = false;
@@ -58,9 +59,15 @@ public class Socket{
 	AtomicInteger rwin = new AtomicInteger(0); //janela de recepção
 
 	AtomicBoolean close = new AtomicBoolean(false); //booleano com condição de parada das threads
-
+	AtomicBoolean connect = new AtomicBoolean(false);
+	
 	AtomicLong velocidade = new AtomicLong(0);
 
+	byte[] SYN_BYTE = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0};
+	byte[] SYN_ACK_BYTE = {0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0};
+	byte[] FIN_BYTE = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1};
+	byte[] FIN_ACK_BYTE = {0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1};
+	
 	//Objetos para sincronização
 	Object buffer_cliente = new Object();
 	Object buffer_server = new Object();
@@ -168,150 +175,38 @@ public class Socket{
 	public void reset(){
 		this.last_send.set(0);
 	}
-
-	//Contrutores reais
-	public Socket(InetAddress address, int port) throws IOException{
-		real_socket = new DatagramSocket();
-		this.is_server = false;
-		boolean done = false;
-		do{
-			//Enviar solicitação ao ServerSocket
-			byte[] to_conect = new byte[Pacote.head_payload];
-			OperacoesBinarias.inserirCabecalho(to_conect, 0, 0, false, false, true, false, 0, 0);
-			DatagramPacket packet = new DatagramPacket(to_conect, to_conect.length,address,port);
-			real_socket.send(packet); //envia pacote para o servidor
-
-			//receber mensagem do socket especial de servidor criado para comunicalçao
-			DatagramPacket packet2  = new DatagramPacket(new byte[Pacote.default_size], Pacote.default_size);
-			real_socket.receive(packet2);
-			byte[] temp = packet2.getData();
-
-			if(OperacoesBinarias.extrairSYN(temp) && OperacoesBinarias.extrairACK(temp)){
-				done  = true;
-				this.server_adress = packet2.getAddress();
-				this.server_port = packet2.getPort();
-				this.client_adress = real_socket.getLocalAddress();
-				this.client_port = real_socket.getLocalPort();
-
-				//resposta para o novo servidor
-				OperacoesBinarias.inserirCabecalho(to_conect, 0, 0, true, false, true, false, 0, 0);
-				DatagramPacket packet3 = new DatagramPacket(to_conect, to_conect.length,server_adress,server_port);
-				real_socket.send(packet3);
-				//resposta para o novo servidor a partir de agora
-				new Thread(new Receiver()).start();
-				new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
+	
+	//usado pelo cliente para indicar criar um socket para o servidor
+		public Socket(int porta_servidor, InetAddress endereco_servidor) throws IOException {
+			real_socket = new DatagramSocket();
+			this.server_port = porta_servidor;
+			this.server_adress = endereco_servidor;
+			DatagramPacket receiver = new DatagramPacket(new byte[Pacote.head_payload], Pacote.head_payload);
+			while(!connect.get()){
+				real_socket.send(new DatagramPacket(SYN_BYTE, Pacote.head_payload, endereco_servidor, porta_servidor));
+				real_socket.send(new DatagramPacket(SYN_BYTE, Pacote.head_payload, endereco_servidor, porta_servidor));
+				real_socket.receive(receiver);
+				if(receiver.getAddress().equals(endereco_servidor) && receiver.getPort()==porta_servidor){
+					connect.set(true);
+				}
 			}
-		}while(!done);
-	}
+		
+			new Thread(new Receiver()).start();
+			new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
+		}
 
-	public Socket(String host, int port) throws IOException{
-		real_socket = new DatagramSocket();
-		this.is_server = false;
-		boolean done = false;
-		do{
-			//Enviar solicitação ao ServerSocket
-			byte[] to_conect = new byte[Pacote.head_payload];
-			OperacoesBinarias.inserirCabecalho(to_conect, 0, 0, false, false, true, false, 0, 0);
-			DatagramPacket packet = new DatagramPacket(to_conect, to_conect.length,InetAddress.getByName(host),port);
-			real_socket.send(packet); //envia pacote para o servidor
+		//usado pelo servidor para ficar escutando na porta especifica
+		public Socket(int port) throws IOException {
+			real_socket = new DatagramSocket(port);
+		}
 
-			//receber mensagem do socket especial de servidor criado para comunicalçao
-			DatagramPacket packet2  = new DatagramPacket(new byte[Pacote.default_size], Pacote.default_size);
-			real_socket.receive(packet2);
-			byte[] temp = packet2.getData();
-			if(OperacoesBinarias.extrairSYN(temp) && OperacoesBinarias.extrairACK(temp)){
-				done  = true;
-				this.server_adress = packet2.getAddress();
-				this.server_port = packet2.getPort();
-				this.client_adress = real_socket.getLocalAddress();
-				this.client_port = real_socket.getLocalPort();
-
-				//resposta para o novo servidor
-				OperacoesBinarias.inserirCabecalho(to_conect, 0, 0, true, false, true, false, 0, 0);
-				DatagramPacket packet3 = new DatagramPacket(to_conect, to_conect.length,server_adress,server_port);
-				real_socket.send(packet3);
-				//resposta para o novo servidor a partir de agora
-				new Thread(new Receiver()).start();
-				new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
-			}
-		}while(!done);
-	}
-	//fim dos construtores reais
-
-	//Soclet especial criado por um ServerSocket
-	public Socket(InetAddress client_adress, int client_port, boolean isServer) throws IOException{
-		boolean done = false;
-		System.out.println(client_port);
-		System.out.println(client_adress);
-		do{
-			this.is_server = true; //Sou um Socket do servidor
-			byte[] to_cliente = new byte[Pacote.head_payload];
-			OperacoesBinarias.inserirCabecalho(to_cliente, 0, 0, true, false, true, false, 0, 0);
-			DatagramPacket packet = new DatagramPacket(to_cliente, to_cliente.length, client_adress, client_port);
-			real_socket.send(packet); //envio mensagem de apresentação ao meu novo cliente
-
-			//Seto meus endereços
-			this.server_adress = real_socket.getLocalAddress();
-			this.server_port = real_socket.getLocalPort();
-
-			//Recebo confirmação do cliente
-			DatagramPacket temp  = new DatagramPacket(new byte[Pacote.head_payload], Pacote.head_payload);
-			real_socket.receive(temp);
-			if(OperacoesBinarias.extrairACK(temp.getData()) && OperacoesBinarias.extrairSYN(temp.getData())){
-				done = true;
-				this.client_adress = temp.getAddress();
-				this.client_port = temp.getPort();
-
-				//inicio o processo de inicialização da classe Socket sendo um server
-				this.send_base.set(0);
-				this.nextseqnum.set(0);
-
-				new Thread(new Receiver()).start(); //Cria um receptor de ACKs
-				new Thread(new Sender()).start(); //Cria uma thread responsável pelo envio de pacotes
-				
-				is_connected = true;
-			}
-		}while(!done);
-
-	}
-
-	//Server
-	public Socket(int port) throws IOException{
-		real_socket = new DatagramSocket(port);
-		this.server_adress = InetAddress.getByName("localhost");
-		this.server_port = port;
-		DatagramPacket temp  = new DatagramPacket(new byte[Pacote.head_payload], Pacote.head_payload);
-		real_socket.receive(temp);
-		this.client_adress = temp.getAddress();
-		this.client_port = temp.getPort();
-
-		this.send_base.set(0);
-		this.nextseqnum.set(0);
-
-		Sender sender = new Sender();
-		Receiver receiver = new Receiver();
-		Thread sender_t = new Thread(sender);
-		sender_t.setName("Sender");
-		Thread receiver_t = new Thread(receiver);
-		receiver_t.setName("Receiver");
-		sender_t.start();
-		receiver_t.start();
-	}
-
-	//Cliente
-	public Socket(int server_port, InetAddress server) throws IOException{
-		real_socket = new DatagramSocket();
-		this.server_adress = server;
-		this.server_port = server_port;
-		DatagramPacket temp  = new DatagramPacket(new byte[Pacote.head_payload], Pacote.head_payload,this.server_adress,this.server_port);
-		real_socket.send(temp);
-		this.client_adress = real_socket.getLocalAddress();
-		this.client_port = real_socket.getLocalPort();
-
-		new Thread(new Receiver()).start();
-		new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
-	}
-
+		public void setCliente(int portaCliente, InetAddress enderecoCliente){
+			this.client_adress = enderecoCliente;
+			this.client_port = portaCliente;
+			new Thread(new Receiver()).start();
+			new Thread(new Sender()).start();
+		}
+	
 	//classes internas
 	private class Sender extends Thread{
 

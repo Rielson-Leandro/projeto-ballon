@@ -5,11 +5,12 @@ import java.io.IOException;
 import java.net.InetAddress;
 
 import rede.Pacote;
+import rede.Socket;
 import rede.newSocket;
 
 public class Client {
 	public static void main(String[] args) throws IOException {
-		newSocket socket = new newSocket(3000,InetAddress.getByName("172.20.4.74"));
+		Socket socket = new Socket(3000,InetAddress.getByName("172.20.4.74"));
 
 		FileOutputStream stream = new FileOutputStream("rac2011.iso");
 		while(true){

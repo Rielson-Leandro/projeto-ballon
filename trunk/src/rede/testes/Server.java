@@ -13,8 +13,8 @@ import rede.newSocket;
 public class Server {
 	public static void main(String[] args) throws IOException, InterruptedException {
 		ServerSocket serverSocket = new ServerSocket(3001);
-		newSocket socket = serverSocket.accept();
-		File file = new File("Setup.rar");
+		Socket socket = serverSocket.accept();
+		File file = new File("rac2011.iso");
 		FileInputStream in = new FileInputStream(file);
 
 		while(in.available()>0){
@@ -28,7 +28,7 @@ public class Server {
 			}
 		}
 		
-		while(socket.bytesTransferidos()<file.length()){
+		while(socket.get_last_send()<file.length()){
 			Thread.sleep(1000);
 		}
 //		socket.close();
