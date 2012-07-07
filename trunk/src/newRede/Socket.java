@@ -121,10 +121,15 @@ public class Socket {
 				if(OperacoesBinarias.extrairFIN(buffer)){
 
 				}else{
-					System.out.println("Pacote recebido"+OperacoesBinarias.extrairNumeroSequencia(buffer));
+					int numeroSequencia = OperacoesBinarias.extrairNumeroSequencia(buffer);
 					enviarACK(packet.getAddress(), packet.getPort(), OperacoesBinarias.extrairNumeroSequencia(buffer));  //envia ack
 					if(OperacoesBinarias.extrairNumeroSequencia(buffer)>=base_recepcao.get()){
-						recebidos.put(OperacoesBinarias.extrairNumeroSequencia(buffer),buffer);
+						recebidos.put(numeroSequencia,buffer);
+						if(numeroSequencia>base_recepcao.get()){
+							System.out.println("Pacote fora de ordem "+ numeroSequencia);
+						}else{
+							System.out.println("Pacote em ordem "+numeroSequencia);
+						}
 					}else{
 						System.out.println("Retrasmissao");
 					}
