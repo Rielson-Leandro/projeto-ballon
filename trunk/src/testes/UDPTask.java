@@ -30,7 +30,7 @@ public class UDPTask {
 				
 				if(stream.available()>0){
 					boolean parar = false;
-					for (int i = 0; i < 64 && !parar; i++) {
+					for (int i = 0; i < 100000 && !parar; i++) {
 						int leu = stream.read(data);
 						if(leu>0){
 							DatagramPacket packet = new DatagramPacket(data, leu, InetAddress.getByName("172.20.4.85"), 3000);
@@ -51,7 +51,7 @@ public class UDPTask {
 	}
 	
 	public void start() throws FileNotFoundException, SocketException{
-		new Timer().scheduleAtFixedRate(new UDP(new FileInputStream("rac2011.iso"), new DatagramSocket()), 0, 50);
+		new Timer().scheduleAtFixedRate(new UDP(new FileInputStream("rac2011.iso"), new DatagramSocket()), 0, 1);
 	}
 	public static void main(String[] args) throws FileNotFoundException, SocketException {
 		new UDPTask().start();
