@@ -9,6 +9,7 @@ import java.net.InetAddress;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.jfree.ui.ArrowPanel;
@@ -30,7 +31,7 @@ public class Socket {
 	long ultimoEnviado = 0;
 	long bytes_recebidos = 0;
 
-	boolean timeout_rodando;
+	AtomicBoolean timeout_rodando = new AtomicBoolean(false);
 	boolean parar = false;
 
 	FileInputStream arquivo_envio;
@@ -72,36 +73,36 @@ public class Socket {
 
 		@Override
 		public void run() {
-			System.out.println("Sender");
 			if(nextseqnum<=base_envio.get()+cwin.get()){
 				int numero_pacotes_enviar = (base_envio.get()+cwin.get())-nextseqnum;
 				System.out.println("Peguei permissao para enviar" + numero_pacotes_enviar);
 				try {
-					for (int i = 0; i < 1000 && arquivo_envio.available()>0; i++) {
-						System.out.println("Novo Pacote "+ nextseqnum);
+					for (int i = 0; i < numero_pacotes_enviar && arquivo_envio.available()>0; i++) {
 						bytes_lidos = arquivo_envio.read(dados,Pacote.head_payload,Pacote.util_load);
 						OperacoesBinarias.inserirCabecalho(dados, nextseqnum, 0, false, false, false, false, bytes_lidos, 0);
 						DatagramPacket pacote = new DatagramPacket(dados, dados.length, endereco_cliente, porta_cliente); 
 						socket.send(pacote);
-						enviados.put(nextseqnum++, new Pacote(pacote,System.currentTimeMillis(),bytes_lidos));
+						enviados.put(nextseqnum, new Pacote(pacote,System.currentTimeMillis(),bytes_lidos));
 						socket.send(pacote);
+						nextseqnum++;
 					}
-					if(!timeout_rodando){
-						//iniciar um timeout
+					if(!timeout_rodando.get()){
+						new Timer().scheduleAtFixedRate(new Timeout(), 100, 100);
 					}
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
 			}else{
 				System.out.println("Não da");
-				if(!timeout_rodando){
-					//inicie um timeout
+				if(!timeout_rodando.get()){
+					new Timer().scheduleAtFixedRate(new Timeout(), 100, 100);
 				}
 			}
-
-			//			if(parar){
-			//				this.cancel();
-			//			}
+			
+			while(!enviados.isEmpty() && enviados.get(base_envio.get())!=null){
+				ultimoEnviado += enviados.get(base_envio.get()).getDataLentgh();
+				enviados.remove(base_envio.getAndIncrement());
+			}
 		}
 	}
 
@@ -139,7 +140,6 @@ public class Socket {
 
 		@Override
 		public void run() {
-			System.out.println("ACKS");
 			try {
 				byte[] buffer = new byte[Pacote.default_size];
 				DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
@@ -150,14 +150,8 @@ public class Socket {
 				}else if(OperacoesBinarias.extrairACK(buffer)){
 					if(enviados.get(OperacoesBinarias.extrairNumeroReconhecimento(buffer))!=null){
 						enviados.get(OperacoesBinarias.extrairNumeroReconhecimento(buffer)).setEnviado(true);
-						cwin.incrementAndGet();
-						System.out.println("Cwin" + cwin.get());
+						cwin.getAndAdd(10);
 					}
-				}
-
-				while(!enviados.isEmpty() && enviados.get(base_envio.get())!=null){
-					ultimoEnviado += enviados.get(base_envio.get()).getDataLentgh();
-					enviados.remove(base_envio.getAndIncrement());
 				}
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -169,22 +163,30 @@ public class Socket {
 
 		@Override
 		public void run() {
-			System.out.println("Timeout");
 			try {
 				if(!enviados.isEmpty()){
 					if(enviados.get(base_envio.get())!=null){
-						if((System.currentTimeMillis()-enviados.get(base_envio.get()).send_time)>100){
+						if((System.currentTimeMillis()-enviados.get(base_envio.get()).send_time)>200){
 							System.out.println("TimeoutEvent");
-
-							socket.send(enviados.get(base_envio.get()).pkt);
-							cwin.set(cwin.get()/2);
+							int indice = base_envio.get();
+							while(enviados.get(indice)!=null){
+								socket.send(enviados.get(indice).pkt);
+								cwin.set(cwin.get()/2);
+								indice++;
+							}
+							
 
 						}
 					}
+				}else{
+					timeout_rodando.set(false);
 				}
 			} catch (IOException e) {
 				e.printStackTrace();
-				new Timer().scheduleAtFixedRate(new Timeout(), 100, 100);
+				timeout_rodando.set(false);
+			} catch (Exception e) {
+				e.printStackTrace();
+				timeout_rodando.set(false);
 			}
 		}
 	}
