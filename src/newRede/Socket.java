@@ -187,7 +187,6 @@ public class Socket {
 
 		@Override
 		public void run() {
-			System.out.println("Armazendo pacotes do buffer");
 			while(recebidos.get(base_recepcao.get())!=null){
 				try {
 					arquivo_recebido.write(recebidos.get(base_recepcao.get()), Pacote.head_payload, OperacoesBinarias.extrairComprimentoDados(recebidos.get(base_recepcao.getAndIncrement())));
