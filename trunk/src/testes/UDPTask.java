@@ -27,12 +27,13 @@ public class UDPTask {
 		@Override
 		public void run(){
 			try {
+				
 				if(stream.available()>0){
 					boolean parar = false;
 					for (int i = 0; i < 64 && !parar; i++) {
 						int leu = stream.read(data);
 						if(leu>0){
-							DatagramPacket packet = new DatagramPacket(data, leu, InetAddress.getByName("172.20.4.75"), 3000);
+							DatagramPacket packet = new DatagramPacket(data, leu, InetAddress.getByName("172.20.4.85"), 3000);
 							socket.send(packet);
 						}else{
 							parar = true;
