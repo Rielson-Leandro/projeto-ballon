@@ -44,10 +44,8 @@ public class Worker extends Thread{
 	private void checkConnection(){
 		//System.out.print("Checando estado da conexao com " + this.socketClient.getInetAddress().getHostAddress() + " ... ");
 		if(this.socketClient.isClosed()){
-			System.out.println("DESCONECTADO");
 			isConnected = false;
 		}else{
-			//System.out.println("CONECTADO");
 			isConnected = true;
 		}
 	}
@@ -84,10 +82,11 @@ public class Worker extends Thread{
 
 	private void gerenciamentoUsuarios(String[] msg){
 		if(msg[0].equals("LOGINRQST")){
-			System.out.println("Processando requisicao de login:\nLogin: " + msg[1] +"\nSenha: " + msg[2]);
+			
 			Usuario rqstUser = this.servidor.executeLogin(msg[1], msg[2]);
+			
 			if( rqstUser != null ){
-				System.out.println(msg[1] + " logado com SUCESSO!\nEnviando mensagem de resposta.");
+				System.out.println(msg[1] + " logado com SUCESSO!");
 
 				this.user = rqstUser;
 				
@@ -96,12 +95,10 @@ public class Worker extends Thread{
 					this.toCLient.writeBytes("LOGINRQST#successful\n");
 
 					ObjectOutputStream out = new ObjectOutputStream(this.socketClient.getOutputStream());
-					System.out.println("Enviando usuario ... ");
+					
 					out.writeObject(rqstUser);
-					System.out.println("Enviado ... ");
+					
 					out.flush();
-					System.out.println("Transferencia concluida.");
-
 
 				}catch(IOException e){
 					System.out.println("Falha ao enviar a mensagem de login bem sucedido para o cliente.");
@@ -119,9 +116,8 @@ public class Worker extends Thread{
 		}
 
 		if(msg[0].equals("SIGNUP")){
-			System.out.println("Processando requisicao de cadastro:\nLogin: " + msg[1] + "\nSenha: " + msg[2]);
+			
 			this.servidor.executeSignUp(msg[1], msg[2]);
-			System.out.println("Cadastro realizado ... Enviando resposta ...");
 
 			try{ 
 				this.toCLient.writeBytes("SIGNUP#successful\n");
@@ -134,7 +130,8 @@ public class Worker extends Thread{
 	private void gerenciamentoArquivos(String[] msg){
 		if(msg[0].equals("REMOVEFILE")){
 			this.user.getListaArquivos().removerByHash(msg[1]);
-			File temp = new File(this.servidor.getFilesDir() + msg[1]);
+			this.servidor.saveUserList();
+			File temp = new File(this.servidor.getFilesDir() + msg[1] + ".file");
 			temp.delete();
 		}
 	}
@@ -160,12 +157,8 @@ public class Worker extends Thread{
 
 						Socket transferSocket = socketFiles.accept();
 
-						String[] endClientOriginal =  this.socketClient.getRemoteSocketAddress().toString().split(":");
-						String[] endClientNovo = transferSocket.getRemoteSocketAddress().toString().split(":");
-
-						System.out.println("Comparando " + endClientOriginal[0] + " <-> " + endClientNovo[0]);
-
-						if( endClientOriginal[0].equals(endClientNovo[0]) ){
+						if( this.socketClient.getInetAddress().getHostAddress().equals(transferSocket.getInetAddress().getHostAddress()) ){
+							
 							System.out.println("Conexao de transferencia estabelecida para " + transferSocket.getRemoteSocketAddress().toString());
 
 							userCorreto = true;
@@ -192,15 +185,11 @@ public class Worker extends Thread{
 				do{
 					System.out.println("Aguardando conexao de socket de transferencia ... ");
 
-					String[] endClientOriginal =  this.socketClient.getRemoteSocketAddress().toString().split(":");
+					Socket transferSocket = new Socket( this.socketClient.getInetAddress().getHostAddress() , Integer.parseInt(msg[3]) );
 
-					Socket transferSocket = new Socket( endClientOriginal[0].substring(1) , Integer.parseInt(msg[3]) );
+					System.out.println("Comparando " + this.socketClient.getInetAddress().getHostAddress() + " <-> " + transferSocket.getInetAddress().getHostAddress());
 
-					String[] endClientNovo = transferSocket.getRemoteSocketAddress().toString().split(":");
-
-					System.out.println("Comparando " + endClientOriginal[0].substring(1) + " <-> " + endClientNovo[0].substring(1));
-
-					if( endClientOriginal[0].equals(endClientNovo[0]) && transferSocket.isConnected() ){
+					if( this.socketClient.getInetAddress().getHostAddress().equals(transferSocket.getInetAddress().getHostAddress()) && transferSocket.isConnected() ){
 
 						userCorreto = true;
 
@@ -209,7 +198,7 @@ public class Worker extends Thread{
 						System.out.println("\nIniciando transferencia do arquivo:\nHash: " + arquivoParaSerEnviado.getHash() + "\nNome: " + arquivoParaSerEnviado.getNomeOriginal() + "\nCaminho: " + arquivoParaSerEnviado.getCaminho() + "\nUploader: " + arquivoParaSerEnviado.getLoginUploader() + "\n");
 
 						Transfer transferidor = new Transfer();
-						transferidor.setSender(arquivoParaSerEnviado, this.servidor.getFilesDir() + arquivoParaSerEnviado.getHash(), transferSocket, this.servidor.getRemainingDir());
+						transferidor.setSender(arquivoParaSerEnviado, this.servidor.getFilesDir() + arquivoParaSerEnviado.getHash() + ".file", transferSocket, this.servidor.getRemainingDir());
 						transferidor.start();
 					}
 				}while(!userCorreto);
