@@ -92,4 +92,12 @@ public class ListaArquivos implements Serializable{
 			this.lista.get(i).setSyncStatus(false);
 		}
 	}
+	
+	public void clearAllStats(){
+		for (int i = 0; i < this.lista.size(); i++) {
+			this.lista.get(i).setSyncStatus(false);
+			this.lista.get(i).setSyncing(false);
+			this.lista.get(i).setReadyStatus(false);
+		}
+	}
 }
