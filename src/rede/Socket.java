@@ -266,6 +266,7 @@ public class Socket{
 					try {
 						if(use_file){
 							as_read = stream.read(to_packet,Pacote.head_payload,Pacote.util_load);
+							System.out.println(as_read);
 						}else{
 							as_read = read_internal(to_packet, Pacote.head_payload, Pacote.util_load);
 						}
@@ -444,8 +445,8 @@ public class Socket{
 			while(continua && !close.get()){
 
 				try {
-					Thread.sleep(Math.max(timeout.get(),min_timeout)); //thread dorme para simular timeout
-					//					Thread.sleep(200);
+//					Thread.sleep(Math.max(timeout.get(),min_timeout)); //thread dorme para simular timeout
+										Thread.sleep(200);
 				} catch (InterruptedException e) {
 					System.out.println("Erro no timeout");
 				}
