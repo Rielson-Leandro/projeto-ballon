@@ -2,14 +2,10 @@ package rede;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.net.SocketAddress;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -28,36 +24,30 @@ public class Socket{
 	//Socket do lado servidor;
 	private int client_port; //Usado tambem do lado cliente;
 	private InetAddress client_adress;
-	
-	SocketAddress address_comparable;
-	
-	protected DatagramSocket real_socket;
 
+	protected DatagramSocket real_socket;
+	
 	private boolean is_server = false;	
 	private boolean is_connected = false;
-	private boolean use_file = false;
-	//Teste
-	FileInputStream stream;
-	FileOutputStream stream2;
-	
+
 	//dados para controle de envio
 	private AtomicInteger send_base = new AtomicInteger(0); //base da janela de congestionamento
 	private AtomicInteger nextseqnum = new AtomicInteger(0); //proximo numero de sequencia
 	private AtomicInteger cwin = new AtomicInteger(10); //janela de congestionamento
-	private AtomicInteger ssthresh = new AtomicInteger(64); //limiar de partidade lenta
+	private AtomicInteger ssthresh = new AtomicInteger(128); //limiar de partidade lenta
 	private AtomicInteger quantos_zerou = new AtomicInteger(0);
 	private AtomicInteger restam_prox_cwin = new AtomicInteger(1);	
 	private AtomicLong timeout = new AtomicLong(1000);
 	private AtomicBoolean estimateRTT_process = new AtomicBoolean(); //variavel para detectar que se esta estimando um RTT
 	private AtomicInteger estimateRTT_for_packet = new AtomicInteger(0); //numero do pacote para o qual se esta estimando o RTT
 
-	private int max_win = 64;
+	private int max_win = 256;
 
 	AtomicLong temp_SampleRTT = new AtomicLong(0);
 	AtomicLong last_send = new AtomicLong(0); //valor do ultimo byte que se tem certeza que foi recebido pelo cliente
 
-	private long min_timeout = 500;
-	private long EstimatedRTT = 500;
+	private long min_timeout = 750;
+	private long EstimatedRTT = 1000;
 	private long DevRTT = 20;
 
 	private AtomicInteger send_packets_cont = new AtomicInteger();
@@ -70,14 +60,14 @@ public class Socket{
 
 	AtomicBoolean close = new AtomicBoolean(false); //booleano com condição de parada das threads
 	AtomicBoolean connect = new AtomicBoolean(false);
-
+	
 	AtomicLong velocidade = new AtomicLong(0);
 
 	byte[] SYN_BYTE = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0};
 	byte[] SYN_ACK_BYTE = {0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0};
 	byte[] FIN_BYTE = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1};
 	byte[] FIN_ACK_BYTE = {0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1};
-
+	
 	//Objetos para sincronização
 	Object buffer_cliente = new Object();
 	Object buffer_server = new Object();
@@ -185,72 +175,38 @@ public class Socket{
 	public void reset(){
 		this.last_send.set(0);
 	}
-
+	
 	//usado pelo cliente para indicar criar um socket para o servidor
-	public Socket(int porta_servidor, InetAddress endereco_servidor) throws IOException {
-		real_socket = new DatagramSocket();
-		this.client_port = this.server_port = porta_servidor;
-		this.client_adress = this.server_adress = endereco_servidor;
-		DatagramPacket receiver = new DatagramPacket(new byte[Pacote.head_payload], Pacote.head_payload);
-		while(!connect.get()){
-			real_socket.send(new DatagramPacket(SYN_BYTE, Pacote.head_payload, endereco_servidor, porta_servidor));
-			real_socket.send(new DatagramPacket(SYN_BYTE, Pacote.head_payload, endereco_servidor, porta_servidor));
-			real_socket.receive(receiver);
-			if(receiver.getAddress().equals(endereco_servidor) && receiver.getPort()==porta_servidor){
-				connect.set(true);
-				address_comparable = receiver.getSocketAddress();
+		public Socket(int porta_servidor, InetAddress endereco_servidor) throws IOException {
+			real_socket = new DatagramSocket();
+			this.server_port = porta_servidor;
+			this.server_adress = endereco_servidor;
+			DatagramPacket receiver = new DatagramPacket(new byte[Pacote.head_payload], Pacote.head_payload);
+			while(!connect.get()){
+				real_socket.send(new DatagramPacket(SYN_BYTE, Pacote.head_payload, endereco_servidor, porta_servidor));
+				real_socket.send(new DatagramPacket(SYN_BYTE, Pacote.head_payload, endereco_servidor, porta_servidor));
+				real_socket.receive(receiver);
+				if(receiver.getAddress().equals(endereco_servidor) && receiver.getPort()==porta_servidor){
+					connect.set(true);
+				}
 			}
-		}
-
-		new Thread(new Receiver()).start();
-		new Thread(new Sender()).start();
-		new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
-	}
-	
-	public Socket(int porta_servidor, InetAddress endereco_servidor,FileInputStream arquivo,FileOutputStream arquivo_saida) throws IOException {
-		stream = arquivo;
-		stream2 = arquivo_saida;
-		use_file = true;
-		real_socket = new DatagramSocket();
-		this.client_port = this.server_port = porta_servidor;
-		this.client_adress = this.server_adress = endereco_servidor;
-		DatagramPacket receiver = new DatagramPacket(new byte[Pacote.head_payload], Pacote.head_payload);
-		while(!connect.get()){
-			real_socket.send(new DatagramPacket(SYN_BYTE, Pacote.head_payload, endereco_servidor, porta_servidor));
-			real_socket.send(new DatagramPacket(SYN_BYTE, Pacote.head_payload, endereco_servidor, porta_servidor));
-			real_socket.receive(receiver);
-			if(receiver.getAddress().equals(endereco_servidor) && receiver.getPort()==porta_servidor){
-				connect.set(true);
-				address_comparable = receiver.getSocketAddress();
-			}
-		}
-
-		new Thread(new Receiver()).start();
-		new Thread(new Sender()).start();
-		new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
-	}
-	
-	//usado pelo servidor para ficar escutando na porta especifica
-	public Socket(int port) throws IOException {
-		real_socket = new DatagramSocket(port);
-	}
-	
-	public Socket(int port, FileInputStream arquivo,FileOutputStream arquivo_copy) throws IOException {
-		use_file = true;
-		stream = arquivo;
-		stream2 = arquivo_copy;
-		real_socket = new DatagramSocket(port);
-	}
-	
-	public void setCliente(int portaCliente, InetAddress enderecoCliente) throws UnknownHostException{
-		this.server_adress = this.client_adress = enderecoCliente;
-		this.server_port = this.client_port = portaCliente;
-		new Thread(new Receiver()).start();
-		new Thread(new Sender()).start();
-		new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
 		
-	}
+			new Thread(new Receiver()).start();
+			new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
+		}
 
+		//usado pelo servidor para ficar escutando na porta especifica
+		public Socket(int port) throws IOException {
+			real_socket = new DatagramSocket(port);
+		}
+
+		public void setCliente(int portaCliente, InetAddress enderecoCliente){
+			this.client_adress = enderecoCliente;
+			this.client_port = portaCliente;
+			new Thread(new Receiver()).start();
+			new Thread(new Sender()).start();
+		}
+	
 	//classes internas
 	private class Sender extends Thread{
 
@@ -264,13 +220,7 @@ public class Socket{
 					int as_read = 0; //inteiro para ver quantos bytes foram lidos
 
 					try {
-						if(use_file){
-							as_read = stream.read(to_packet,Pacote.head_payload,Pacote.util_load);
-							System.out.println(as_read);
-						}else{
-							as_read = read_internal(to_packet, Pacote.head_payload, Pacote.util_load);
-						}
-													
+						as_read = read_internal(to_packet, Pacote.head_payload, Pacote.util_load);							
 					} catch (IOException e) {
 						System.out.println("Problemas com buffers internos");
 						System.out.println("Encerrando conexão...");
@@ -348,7 +298,7 @@ public class Socket{
 
 					}else if(OperacoesBinarias.extrairACK(buffer)){
 
-						if(address_comparable.equals(packet.getSocketAddress())){ //tenho um ack de quem me comunico
+						if(packet.getAddress().equals(client_adress) && packet.getPort()==client_port){ //tenho um ack de quem me comunico
 
 							Pacote temp = null;
 
@@ -387,7 +337,7 @@ public class Socket{
 
 					}else{ //temos um pacote com dados
 
-						if(address_comparable.equals(packet.getSocketAddress())){ //tenho um ack de quem me comunico
+						if(packet.getAddress().equals(server_adress) && packet.getPort()==server_port){ //tenho um ack de quem me comunico
 							//cria ack em resposta ao dado recebido
 							byte[] to_ack = new byte[Pacote.head_payload];
 							OperacoesBinarias.inserirCabecalho(to_ack, 0, seqNum, true, false, false, false, 0, rcv_base.get()+rwin.get());
@@ -408,11 +358,7 @@ public class Socket{
 									seqNum = OperacoesBinarias.extrairNumeroSequencia(dados);
 									velocidade.getAndAdd(dataLength);
 									rcv_base.incrementAndGet(); //incrementa a base de recepção para o proximo pacote
-									if(use_file){
-										stream2.write(dados, Pacote.head_payload, dataLength);
-									}else{
-										write_internal(dados, Pacote.head_payload,dataLength);
-									}
+									write_internal(dados, Pacote.head_payload,dataLength);
 								}
 
 							}else if(seqNum>rcv_base.get()){ //se não temos o proximo pacote esperado
@@ -421,8 +367,6 @@ public class Socket{
 							}else{
 								System.out.println("Retransmissao");
 							}
-						}else{
-							System.out.println("Pacote Recusado");
 						}
 					}
 				} catch (IOException e) {
@@ -445,8 +389,7 @@ public class Socket{
 			while(continua && !close.get()){
 
 				try {
-//					Thread.sleep(Math.max(timeout.get(),min_timeout)); //thread dorme para simular timeout
-										Thread.sleep(200);
+					Thread.sleep(Math.max(timeout.get(),min_timeout)); //thread dorme para simular timeout
 				} catch (InterruptedException e) {
 					System.out.println("Erro no timeout");
 				}
@@ -457,9 +400,9 @@ public class Socket{
 
 						if(!send_packet_buffer.get(0).isEnviado()){
 
-							if(timeouts%2==0){
-								ssthresh.set((cwin.get()/2)+1); // limiar de envio e setado pela metade
-								cwin.set(1); //janela de congestionamento e setada para 1MSS
+							if(timeouts%3==0){
+								ssthresh.set((cwin.get()/2)+10); // limiar de envio e setado pela metade
+								cwin.set(cwin.get()/2); //janela de congestionamento e setada para 1MSS
 								quantos_zerou.set(0);
 								restam_prox_cwin.set(1);
 							}

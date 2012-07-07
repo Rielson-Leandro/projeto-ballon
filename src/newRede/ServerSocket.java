@@ -39,8 +39,8 @@ public class ServerSocket extends Socket{
 			System.out.println("Porta do cliente "+ packet.getPort());
 			super.socket.send(new DatagramPacket(SYN_ACK_BYTE, Pacote.head_payload,packet.getAddress(),packet.getPort()));
 			super.socket.send(new DatagramPacket(SYN_ACK_BYTE, Pacote.head_payload,packet.getAddress(),packet.getPort()));
-			new Timer().scheduleAtFixedRate(new Sender(), 0, 1);
-			new Timer().scheduleAtFixedRate(new ReceiverAcks(), 0, 1);
+			new Timer().scheduleAtFixedRate(new Sender(), 0, 10);
+			new Timer().scheduleAtFixedRate(new ReceiverAcks(), 0, 10);
 			new Timer().scheduleAtFixedRate(new Timeout(), 100, 100);
 		}
 		System.out.println("Solicitação concluida");
