@@ -72,145 +72,144 @@ public class Socket {
 		@Override
 		public void run() {
 			if(nextseqnum<=base_envio.get()+cwin.get()){
-				int numero_pacotes_enviar = (base_envio.get()+cwin.get())-nextseqnum;
-				System.out.println("Peguei permissao para enviar" + numero_pacotes_enviar);
+
 				try {
-					for (int i = 0; i < numero_pacotes_enviar && arquivo_envio.available()>0; i++) {
-						bytes_lidos = arquivo_envio.read(dados,Pacote.head_payload,Pacote.util_load);
-						OperacoesBinarias.inserirCabecalho(dados, nextseqnum, 0, false, false, false, false, bytes_lidos, 0);
-						DatagramPacket pacote = new DatagramPacket(dados, dados.length, endereco_cliente, porta_cliente); 
-						socket.send(pacote);
-						enviados.put(nextseqnum, new Pacote(pacote,System.currentTimeMillis(),bytes_lidos));
-						socket.send(pacote);
-						nextseqnum++;
-					}
-					if(!timeout_rodando.get()){
-						new Timer().scheduleAtFixedRate(new Timeout(), 100, 100);
-					}
+					bytes_lidos = arquivo_envio.read(dados,Pacote.head_payload,Pacote.util_load);
+					OperacoesBinarias.inserirCabecalho(dados, nextseqnum, 0, false, false, false, false, bytes_lidos, 0);
+					DatagramPacket pacote = new DatagramPacket(dados, dados.length, endereco_cliente, porta_cliente); 
+					socket.send(pacote);
+					enviados.put(nextseqnum, new Pacote(pacote,System.currentTimeMillis(),bytes_lidos));
+					socket.send(pacote);
+					nextseqnum++;
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
-			}else{
-				System.out.println("Não da");
+				
 				if(!timeout_rodando.get()){
 					new Timer().scheduleAtFixedRate(new Timeout(), 100, 100);
 				}
-			}
 			
-			while(!enviados.isEmpty() && enviados.get(base_envio.get())!=null){
-				ultimoEnviado += enviados.get(base_envio.get()).getDataLentgh();
-				enviados.remove(base_envio.getAndIncrement());
+		}else{
+			System.out.println("Não da");
+			if(!timeout_rodando.get()){
+				new Timer().scheduleAtFixedRate(new Timeout(), 100, 100);
 			}
 		}
+
+		while(!enviados.isEmpty() && enviados.get(base_envio.get())!=null){
+			ultimoEnviado += enviados.get(base_envio.get()).getDataLentgh();
+			enviados.remove(base_envio.getAndIncrement());
+		}
+	}
+}
+
+private class ReceiverPackets extends TimerTask{
+
+	public void enviarACK(InetAddress server_adress, int server_port,int seqNum) throws IOException{
+		DatagramPacket packet = new DatagramPacket(OperacoesBinarias.inserirCabecalho(new byte[Pacote.head_payload], 0, seqNum, true, false, false, false, 0, 0), Pacote.head_payload, server_adress, server_port);
+		socket.send(packet);
 	}
 
-	private class ReceiverPackets extends TimerTask{
+	@Override
+	public void run() {
+		try {
+			byte[] buffer = new byte[Pacote.default_size];
+			DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+			socket.receive(packet);
 
-		public void enviarACK(InetAddress server_adress, int server_port,int seqNum) throws IOException{
-			DatagramPacket packet = new DatagramPacket(OperacoesBinarias.inserirCabecalho(new byte[Pacote.head_payload], 0, seqNum, true, false, false, false, 0, 0), Pacote.head_payload, server_adress, server_port);
-			socket.send(packet);
-		}
+			if(OperacoesBinarias.extrairFIN(buffer)){
 
-		@Override
-		public void run() {
-			try {
-				byte[] buffer = new byte[Pacote.default_size];
-				DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-				socket.receive(packet);
-
-				if(OperacoesBinarias.extrairFIN(buffer)){
-
-				}else{
-					int numeroSequencia = OperacoesBinarias.extrairNumeroSequencia(buffer);
-					enviarACK(packet.getAddress(), packet.getPort(), OperacoesBinarias.extrairNumeroSequencia(buffer));  //envia ack
-					if(OperacoesBinarias.extrairNumeroSequencia(buffer)>=base_recepcao.get()){
-						recebidos.put(numeroSequencia,buffer);
-						if(numeroSequencia>base_recepcao.get()){
-							System.out.println("Pacote fora de ordem "+ numeroSequencia);
-						}else{
-							System.out.println("Pacote em ordem "+numeroSequencia);
-						}
+			}else{
+				int numeroSequencia = OperacoesBinarias.extrairNumeroSequencia(buffer);
+				enviarACK(packet.getAddress(), packet.getPort(), OperacoesBinarias.extrairNumeroSequencia(buffer));  //envia ack
+				if(OperacoesBinarias.extrairNumeroSequencia(buffer)>=base_recepcao.get()){
+					recebidos.put(numeroSequencia,buffer);
+					if(numeroSequencia>base_recepcao.get()){
+						System.out.println("Pacote fora de ordem "+ numeroSequencia);
 					}else{
-						System.out.println("Retrasmissao");
-					}
-
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-	}
-
-	class ReceiverAcks extends TimerTask{
-
-		@Override
-		public void run() {
-			try {
-				byte[] buffer = new byte[Pacote.default_size];
-				DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-				socket.receive(packet);
-				System.out.println("ACK "+OperacoesBinarias.extrairNumeroReconhecimento(buffer));
-				if(OperacoesBinarias.extrairFIN(buffer)){
-
-				}else if(OperacoesBinarias.extrairACK(buffer)){
-					if(enviados.get(OperacoesBinarias.extrairNumeroReconhecimento(buffer))!=null){
-						enviados.get(OperacoesBinarias.extrairNumeroReconhecimento(buffer)).setEnviado(true);
-						cwin.getAndAdd(10);
-					}
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-	}
-
-	class Timeout extends TimerTask{
-
-		@Override
-		public void run() {
-			try {
-				if(!enviados.isEmpty()){
-					if(enviados.get(base_envio.get())!=null){
-						if((System.currentTimeMillis()-enviados.get(base_envio.get()).send_time)>200){
-							System.out.println("TimeoutEvent");
-							int indice = base_envio.get();
-							while(enviados.get(indice)!=null){
-								socket.send(enviados.get(indice).pkt);
-								cwin.set(cwin.get()/2);
-								indice++;
-							}
-							
-
-						}
+						System.out.println("Pacote em ordem "+numeroSequencia);
 					}
 				}else{
-					timeout_rodando.set(false);
+					System.out.println("Retrasmissao");
 				}
+
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+}
+
+class ReceiverAcks extends TimerTask{
+
+	@Override
+	public void run() {
+		try {
+			byte[] buffer = new byte[Pacote.default_size];
+			DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+			socket.receive(packet);
+			System.out.println("ACK "+OperacoesBinarias.extrairNumeroReconhecimento(buffer));
+			if(OperacoesBinarias.extrairFIN(buffer)){
+
+			}else if(OperacoesBinarias.extrairACK(buffer)){
+				if(enviados.get(OperacoesBinarias.extrairNumeroReconhecimento(buffer))!=null){
+					enviados.get(OperacoesBinarias.extrairNumeroReconhecimento(buffer)).setEnviado(true);
+					cwin.getAndAdd(10);
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+}
+
+class Timeout extends TimerTask{
+
+	@Override
+	public void run() {
+		try {
+			if(!enviados.isEmpty()){
+				if(enviados.get(base_envio.get())!=null){
+					if((System.currentTimeMillis()-enviados.get(base_envio.get()).send_time)>200){
+						System.out.println("TimeoutEvent");
+						int indice = base_envio.get();
+						while(enviados.get(indice)!=null){
+							socket.send(enviados.get(indice).pkt);
+							cwin.set(cwin.get()/2);
+							indice++;
+						}
+
+
+					}
+				}
+			}else{
+				timeout_rodando.set(false);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+			timeout_rodando.set(false);
+		} catch (Exception e) {
+			e.printStackTrace();
+			timeout_rodando.set(false);
+		}
+	}
+}
+
+private class Armazena extends TimerTask{
+
+	@Override
+	public void run() {
+		while(recebidos.get(base_recepcao.get())!=null){
+			try {
+				arquivo_recebido.write(recebidos.get(base_recepcao.get()), Pacote.head_payload, OperacoesBinarias.extrairComprimentoDados(recebidos.get(base_recepcao.getAndIncrement())));
+				bytes_recebidos+= OperacoesBinarias.extrairComprimentoDados(recebidos.get(base_envio.get()));
+				recebidos.remove(base_envio.getAndIncrement());
 			} catch (IOException e) {
+				// TODO Auto-generated catch block
 				e.printStackTrace();
-				timeout_rodando.set(false);
-			} catch (Exception e) {
-				e.printStackTrace();
-				timeout_rodando.set(false);
 			}
 		}
 	}
 
-	private class Armazena extends TimerTask{
-
-		@Override
-		public void run() {
-			while(recebidos.get(base_recepcao.get())!=null){
-				try {
-					arquivo_recebido.write(recebidos.get(base_recepcao.get()), Pacote.head_payload, OperacoesBinarias.extrairComprimentoDados(recebidos.get(base_recepcao.getAndIncrement())));
-					bytes_recebidos+= OperacoesBinarias.extrairComprimentoDados(recebidos.get(base_envio.get()));
-					recebidos.remove(base_envio.getAndIncrement());
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
-		}
-
-	}
+}
 }
