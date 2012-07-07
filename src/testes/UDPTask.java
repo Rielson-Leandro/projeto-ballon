@@ -1,5 +1,6 @@
 package testes;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -7,6 +8,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -53,7 +55,19 @@ public class UDPTask {
 	public void start() throws FileNotFoundException, SocketException{
 		new Timer().scheduleAtFixedRate(new UDP(new FileInputStream("rac2011.iso"), new DatagramSocket()), 0, 1);
 	}
-	public static void main(String[] args) throws FileNotFoundException, SocketException {
-		new UDPTask().start();
+	public static void main(String[] args) throws IOException {
+//		new UDPTask().start();
+		File file  = new File("rac2011.iso");
+		FileInputStream stream = new FileInputStream(file);
+		DatagramSocket socket = new DatagramSocket();
+		InetAddress address =InetAddress.getByName("172.20.4.85");
+		int port = 3000;
+		byte[] data = new byte[1024];
+		int leu;
+		for (int i = 0; i < file.length();) {
+			leu = stream.read(data);
+			socket.send(new DatagramPacket(data, leu, address, port));
+		}
+		
 	}
 }
