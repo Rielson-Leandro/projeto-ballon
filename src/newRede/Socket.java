@@ -147,9 +147,11 @@ public class Socket {
 				if(OperacoesBinarias.extrairFIN(buffer)){
 					
 				}else if(OperacoesBinarias.extrairACK(buffer)){
-					enviados.get(OperacoesBinarias.extrairNumeroReconhecimento(buffer)).setEnviado(true);
-					cwin.incrementAndGet();
-					
+					if(enviados.get(OperacoesBinarias.extrairNumeroReconhecimento(buffer))!=null){
+						enviados.get(OperacoesBinarias.extrairNumeroReconhecimento(buffer)).setEnviado(true);
+						cwin.incrementAndGet();
+					}
+										
 					while(!enviados.isEmpty() && enviados.get(base_envio.get())!=null){
 						ultimoEnviado += enviados.get(base_envio.get()).getDataLentgh();
 						enviados.remove(base_envio.getAndIncrement());
