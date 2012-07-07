@@ -57,6 +57,7 @@ public class Sincronizador extends Thread{
 		for (int i = 0; i < listaDir.length; i++) {
 
 			nome = listaDir[i].getPath().replace(File.separatorChar, '#').split("#");
+			System.out.println("Comparando: " + nome[nome.length - 1]);
 			temp = this.lista.getByNomeOriginal(nome[nome.length - 1]);
 			if(temp != null){
 				//se ta na lista
@@ -117,69 +118,18 @@ public class Sincronizador extends Thread{
 		Vector<Arquivo> listNotSynced = this.lista.getAllNotSynced();
 		for (int i = 0; i < listNotSynced.size(); i++) {
 			//verifica se esta sincronizado(esta na lista mas nao esta no diretorio
-			if(!listNotSynced.get(i).getSyncStatus() && listNotSynced.get(i).getReadyStatus() && !listNotSynced.get(i).isSyncing() && this.firstTime){
+			if(!listNotSynced.get(i).getSyncStatus() && !listNotSynced.get(i).isSyncing() && this.firstTime){
 				//se nao estiver, solicita arquivo arquivo
 				this.solicitarArquivo(listNotSynced.get(i).getHash());
 			}
 			
-			if(listNotSynced.get(i).getReadyStatus() && !listNotSynced.get(i).isSyncing() && !this.firstTime){
+			if(!listNotSynced.get(i).isSyncing() && !this.firstTime){
 				System.out.println("DELETANDO arquivo " + listNotSynced.get(i).getCaminho());
 				File temp = new File(listNotSynced.get(i).getCaminho());
 				temp.delete();
 				this.cliente.getUser().getListaArquivos().removerByNomeOriginal(listNotSynced.get(i).getNomeOriginal());
 				this.cliente.sendMensagem("REMOVEFILE#" + listNotSynced.get(i).getHash());
 			}
-		}
-	}
-
-	private void verificarArquivos(){
-		String caminho = "";
-		String[] temp;
-		Arquivo  arq = null;
-
-		//inicia a varredura
-		for (int i = 0; i < this.listaFisica.length; i++) {
-
-			caminho = this.listaFisica[i].getPath();
-			temp = caminho.replace(File.separatorChar, '#').split("#");
-			arq = this.lista.getByNomeOriginal(temp[temp.length - 1]);
-			Socket transferSkt;
-
-			if( arq != null ){
-
-				//verifica se foi modificado no diretorio
-				System.out.println("Verificando " + caminho + " <-> " + arq.getNomeOriginal());
-				if( arq.getUltimaModificacao() != this.listaFisica[i].lastModified() ){
-
-					// tenta enviar o arquivo para o server
-					arq.setSyncStatus(false);
-
-					//veririca se o arquivo esta pronto para envio
-					if(arq.getReadyStatus()){
-						//envia de fato
-
-
-					}
-				}else{
-					//o arquivo esta sincronizado, assegura-se disto
-					arq.setSyncStatus(true);
-				}
-
-			}else{
-				if(this.firstTime){
-					//tenta deleta arquivo
-					System.out.println("DELETANDO arquivo do servidor:\nNome original: " + temp[temp.length - 1] + " ... Codigo hash: " + (this.cliente.getUser().getLogin() + temp[temp.length - 1]).hashCode() );
-					this.listaFisica[i].delete();
-				}else{
-					//envia o arquivo para o servidor
-				}
-			}
-		}
-
-		//solicita os arquivos que estao na lista mas nao estao no diretorio
-		Vector<Arquivo> listaNotSynced = this.lista.getAllNotSynced();
-		for (int j = 0; j < listaNotSynced.size(); j++) {
-
 		}
 	}
 
@@ -226,7 +176,6 @@ public class Sincronizador extends Thread{
 
 					if( msgPorta[0].equals("SENDONPORT") && msgPorta[1].equals(this.cliente.getUser().getLogin()) && msgPorta[3].equals(arq.getHash()) ){
 
-						System.out.println("Pora habilitada: " + msgPorta[2]);
 						try{
 							transferSkt = new Socket(this.skt.getInetAddress().getHostAddress(), Integer.parseInt(msgPorta[2]));
 							portaSelecionada = true;
@@ -252,7 +201,7 @@ public class Sincronizador extends Thread{
 	}
 
 	private void solicitarArquivo(String hash){
-		System.out.println("SOLICITANDO arquivo do servidor:\nNome original: " + this.lista.getByHash(hash) + " ... Codigo hash: " +  this.lista.getByHash(hash).getHash() );	
+		System.out.println("SOLICITANDO arquivo do servidor:\nNome original: " + this.lista.getByHash(hash).getNomeOriginal() + " ... Codigo hash: " +  this.lista.getByHash(hash).getHash() );	
 
 		ServerSocket socketReceptor = this.getServerDisponivel();
 
@@ -263,6 +212,7 @@ public class Sincronizador extends Thread{
 
 			Transfer recpt = new Transfer();
 			Arquivo novoArquivo = new Arquivo(this.lista.getByHash(hash).getCaminho(), this.cliente.getUser().getLogin());
+			System.out.println("Criando arquivo em " + this.lista.getByHash(hash).getCaminho() + " para user " + this.cliente.getUser().getLogin());
 			recpt.setReciever(socketAceito, novoArquivo, this.cliente.getFilesDir(), socketReceptor, true);
 			recpt.start();
 
