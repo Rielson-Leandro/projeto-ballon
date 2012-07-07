@@ -104,11 +104,14 @@ public class Socket {
 				new Timer().scheduleAtFixedRate(new Timeout(), 100, 100);
 			}
 		}
-
-		while(!enviados.isEmpty() && enviados.get(base_envio.get())!=null){
-			ultimoEnviado += enviados.get(base_envio.get()).getDataLentgh();
-			enviados.remove(base_envio.getAndIncrement());
+			
+		synchronized (syncEnviados) {
+			while(!enviados.isEmpty() && enviados.get(base_envio.get())!=null){
+				ultimoEnviado += enviados.get(base_envio.get()).getDataLentgh();
+				enviados.remove(base_envio.getAndIncrement());
+			}
 		}
+		
 		
 		if(close.get()){
 			this.cancel();
@@ -137,10 +140,10 @@ private class ReceiverPackets extends TimerTask{
 				enviarACK(packet.getAddress(), packet.getPort(), OperacoesBinarias.extrairNumeroSequencia(buffer));  //envia ack
 				if(OperacoesBinarias.extrairNumeroSequencia(buffer)>=base_recepcao.get()){
 					recebidos.put(numeroSequencia,buffer);
-					if(numeroSequencia>base_recepcao.get()){
-						System.out.println("Pacote fora de ordem "+ numeroSequencia);
-					}else{
+					if(numeroSequencia==base_recepcao.get()){
 						System.out.println("Pacote em ordem "+numeroSequencia);
+					}else{
+						System.out.println("Pacote fora de ordem "+ numeroSequencia);
 					}
 				}else{
 					System.out.println("Retrasmissao");
