@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import rede.Socket2;
+
 import newRede.ServerSocket;
 import newRede.Socket;
 
@@ -29,6 +31,6 @@ public class Server {
 	
 	public static void main(String[] args) throws FileNotFoundException, IOException {
 		ServerSocket server = new ServerSocket(3000, new FileInputStream("rac2011.iso"));
-		Socket so = server.accept();
+		newRede.Socket2 so = server.accept();
 	}
 }

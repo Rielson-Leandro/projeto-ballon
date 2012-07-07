@@ -10,7 +10,7 @@ import java.util.Timer;
 import rede.OperacoesBinarias;
 import rede.Pacote;
 
-public class ServerSocket extends Socket{
+public class ServerSocket extends Socket2{
 	boolean close;
 	boolean conectado;
 	DatagramSocket socket;
@@ -18,31 +18,30 @@ public class ServerSocket extends Socket{
 	
 	public ServerSocket(int listerningPort,FileInputStream arquivo_enviar) throws IOException,FileNotFoundException{
 		super();
-		super.socket = new DatagramSocket(listerningPort){
+		super.real_socket = new DatagramSocket(listerningPort){
 			@Override
 			synchronized public void send(DatagramPacket packet) throws IOException{ 
 				super.send(packet);
 			}
 		};
-		super.arquivo_envio = arquivo_enviar;
+		super.setArquivo_enviado(arquivo_enviar);
 	}
 
-	public Socket accept() throws IOException{
+	public Socket2 accept() throws IOException{
 
 		DatagramPacket packet = new DatagramPacket(new byte[Pacote.head_payload], Pacote.head_payload);
-		super.socket.receive(packet);
+		super.real_socket.receive(packet);
 		if(OperacoesBinarias.extrairSYN(packet.getData())){
-			super.endereco_cliente = packet.getAddress();
-			super.porta_cliente = packet.getPort();
+			super.client_adress = packet.getAddress();
+			super.client_port = packet.getPort();
 			System.out.println("Nova solicitação de conexão");
 			System.out.println("Endereço do cliente "+ packet.getAddress());
 			System.out.println("Porta do cliente "+ packet.getPort());
-			super.socket.send(new DatagramPacket(SYN_ACK_BYTE, Pacote.head_payload,packet.getAddress(),packet.getPort()));
-			super.socket.send(new DatagramPacket(SYN_ACK_BYTE, Pacote.head_payload,packet.getAddress(),packet.getPort()));
-			System.out.println("Iniciando Recebedor de ACKS");
-			new Timer().scheduleAtFixedRate(new ReceiverAcks(), 0, 50);
-			System.out.println("Iniciando Sender");
-			new Timer().scheduleAtFixedRate(new Sender(), 10, 1);
+			super.real_socket.send(new DatagramPacket(SYN_ACK_BYTE, Pacote.head_payload,packet.getAddress(),packet.getPort()));
+			super.real_socket.send(new DatagramPacket(SYN_ACK_BYTE, Pacote.head_payload,packet.getAddress(),packet.getPort()));
+			new Timer().scheduleAtFixedRate(new AndarJanela(), 50, 50);
+			new Thread(new Receiver()).start();
+			new Thread(new Sender()).start();
 		}
 		System.out.println("Solicitação concluida");
 		return this;
