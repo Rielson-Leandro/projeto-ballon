@@ -25,8 +25,11 @@ public class UPDTaskCliente {
 		@Override
 		public void run() {
 			try {
-				socket.receive(packet);
-				velocidade += packet.getLength();
+				for (int i = 0; i < 10000; i++) {
+					socket.receive(packet);
+					velocidade += packet.getLength();
+				}
+				
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -49,7 +52,7 @@ public class UPDTaskCliente {
 	}
 	
 	public void start() throws SocketException{
-		new Timer().scheduleAtFixedRate(new UPDCL(new DatagramSocket(3000)), 0, 50);
+		new Timer().scheduleAtFixedRate(new UPDCL(new DatagramSocket(3000)), 0, 100);
 		new Timer().schedule(new Bandwidth(), 1000, 1000);
 	}
 	
