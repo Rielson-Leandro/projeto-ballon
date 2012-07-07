@@ -63,7 +63,7 @@ public class Socket {
 			}
 		}
 
-		new Timer().scheduleAtFixedRate(new ReceiverPackets(), 0, 1);
+		new Timer().scheduleAtFixedRate(new ReceiverPackets(), 0, 10);
 		new Timer().scheduleAtFixedRate(new Armazena(), 100, 100);
 	}
 
@@ -127,6 +127,8 @@ public class Socket {
 					enviarACK(packet.getAddress(), packet.getPort(), OperacoesBinarias.extrairNumeroSequencia(buffer));  //envia ack
 					if(OperacoesBinarias.extrairNumeroSequencia(buffer)>=base_recepcao.get()){
 						recebidos.put(OperacoesBinarias.extrairNumeroSequencia(buffer),buffer);
+					}else{
+						System.out.println("Retrasmissao");
 					}
 
 				}
