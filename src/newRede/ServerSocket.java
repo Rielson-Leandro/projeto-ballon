@@ -42,7 +42,7 @@ public class ServerSocket extends Socket{
 			System.out.println("Iniciando Recebedor de ACKS");
 			new Timer().scheduleAtFixedRate(new ReceiverAcks(), 0, 50);
 			System.out.println("Iniciando Sender");
-			new Timer().scheduleAtFixedRate(new Sender(), 0, 1);
+			new Timer().scheduleAtFixedRate(new Sender(), 10, 1);
 		}
 		System.out.println("Solicitação concluida");
 		return this;
