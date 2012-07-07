@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 
+import newRede.ServerSocket2;
+
 import rede.Pacote;
 import rede.ServerSocket;
 import rede.Socket;
@@ -12,26 +14,11 @@ import rede.newSocket;
 
 public class Server {
 	public static void main(String[] args) throws IOException, InterruptedException {
-		ServerSocket serverSocket = new ServerSocket(3000);
-		Socket socket = serverSocket.accept();
-		File file = new File("rac2011.iso");
-		FileInputStream in = new FileInputStream(file);
-
-		while(in.available()>0){
-			if(socket.buffer_avaliable()>0){
-				int quantos_vai_ler = Math.max(socket.buffer_avaliable(), Pacote.util_load);
-				byte[] buffer = new byte[quantos_vai_ler];
-				int quantos_leu = in.read(buffer);
-				socket.write(buffer, 0, quantos_leu);
-			}else{
-				Thread.sleep(1000);
-			}
-		}
+		FileInputStream in = new FileInputStream("FF.zip");
+		ServerSocket2 serverSocket = new ServerSocket2(3000,in);
+		newRede.Socket2 socket = serverSocket.accept();
 		
-		while(socket.get_last_send()<file.length()){
-			Thread.sleep(1000);
-		}
-//		socket.close();
+				
 		System.out.println("Encerrando...");
 	}
 }

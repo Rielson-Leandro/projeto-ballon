@@ -41,12 +41,12 @@ public class Socket{
 	private AtomicBoolean estimateRTT_process = new AtomicBoolean(); //variavel para detectar que se esta estimando um RTT
 	private AtomicInteger estimateRTT_for_packet = new AtomicInteger(0); //numero do pacote para o qual se esta estimando o RTT
 
-	private int max_win = 256;
+	private int max_win = 16;
 
 	AtomicLong temp_SampleRTT = new AtomicLong(0);
 	AtomicLong last_send = new AtomicLong(0); //valor do ultimo byte que se tem certeza que foi recebido pelo cliente
 
-	private long min_timeout = 750;
+	private long min_timeout = 200;
 	private long EstimatedRTT = 1000;
 	private long DevRTT = 20;
 
@@ -316,7 +316,7 @@ public class Socket{
 
 									if(!temp.isEnviado()){
 										temp.setEnviado(true);
-										cwin.set(Math.min(cwin.get()+1, max_win));
+										cwin.set(Math.min(cwin.get()+10, max_win));
 									}
 								}
 							}
@@ -389,7 +389,8 @@ public class Socket{
 			while(continua && !close.get()){
 
 				try {
-					Thread.sleep(Math.max(timeout.get(),min_timeout)); //thread dorme para simular timeout
+//					Thread.sleep(Math.max(timeout.get(),min_timeout)); //thread dorme para simular timeout
+					Thread.sleep(200);
 				} catch (InterruptedException e) {
 					System.out.println("Erro no timeout");
 				}
