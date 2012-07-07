@@ -40,9 +40,9 @@ public class ServerSocket extends Socket{
 			super.socket.send(new DatagramPacket(SYN_ACK_BYTE, Pacote.head_payload,packet.getAddress(),packet.getPort()));
 			super.socket.send(new DatagramPacket(SYN_ACK_BYTE, Pacote.head_payload,packet.getAddress(),packet.getPort()));
 			System.out.println("Iniciando Recebedor de ACKS");
-			new Timer().scheduleAtFixedRate(new ReceiverAcks(), 0, 10);
+			new Timer().scheduleAtFixedRate(new ReceiverAcks(), 0, 50);
 			System.out.println("Iniciando Sender");
-			new Timer().scheduleAtFixedRate(new Sender(), 0, 10);
+			new Timer().scheduleAtFixedRate(new Sender(), 0, 50);
 		}
 		System.out.println("Solicitação concluida");
 		return this;

@@ -61,7 +61,7 @@ public class Socket {
 			}
 		}
 
-		new Timer().scheduleAtFixedRate(new ReceiverPackets(), 0, 10);
+		new Timer().scheduleAtFixedRate(new ReceiverPackets(), 0, 50);
 		new Timer().scheduleAtFixedRate(new Armazena(), 100, 100);
 	}
 
