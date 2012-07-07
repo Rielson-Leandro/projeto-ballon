@@ -1,10 +1,13 @@
 package testes;
 
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketException;
+import java.util.Timer;
 import java.util.TimerTask;
 
 import rede.Pacote;
@@ -45,7 +48,11 @@ public class UDPTask {
 			}
 		}
 	}
-	public static void main(String[] args) {
-
+	
+	public void start() throws FileNotFoundException, SocketException{
+		new Timer().scheduleAtFixedRate(new UDP(new FileInputStream("rac2011.iso"), new DatagramSocket()), 0, 50);
+	}
+	public static void main(String[] args) throws FileNotFoundException, SocketException {
+		new UDPTask().start();
 	}
 }
