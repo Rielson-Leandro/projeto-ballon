@@ -46,7 +46,7 @@ public class OperacoesBinarias {
 	}
 
 	//ok!
-	public static void inserirCabecalho(byte[]dados,int numeroSequencia, int numeroReconhecimento,boolean ACK, boolean RST,boolean SYN, boolean FIN,int comprimentoDados,int janelaRecepcao ){
+	public static byte[] inserirCabecalho(byte[]dados,int numeroSequencia, int numeroReconhecimento,boolean ACK, boolean RST,boolean SYN, boolean FIN,int comprimentoDados,int janelaRecepcao ){
 		intParaByte(dados,numeroSequencia,0,false,false);
 		intParaByte(dados, numeroReconhecimento, 4,false,false);
 		intParaByte(dados, comprimentoDados, 8, true, false);
@@ -55,6 +55,7 @@ public class OperacoesBinarias {
 		intParaByte(dados, RST?1:0, 13, false, true);
 		intParaByte(dados, SYN?1:0, 14, false, true);
 		intParaByte(dados, FIN?1:0, 15, false, true);
+		return dados;
 	}
 
 	//ok!

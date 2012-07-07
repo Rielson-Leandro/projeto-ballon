@@ -7,7 +7,8 @@ import java.net.DatagramPacket;
 @SuppressWarnings("serial")
 public class Pacote implements Serializable {
 	
-	DatagramPacket pkt;
+	public DatagramPacket pkt;
+	byte[] dados;
 	boolean is_send;
 	public static final int head_payload = 16;
 	public static int default_size = 1492;
