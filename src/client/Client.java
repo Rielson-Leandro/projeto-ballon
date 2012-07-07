@@ -90,7 +90,6 @@ public class Client{
 		boolean retorno = false;
 		try{
 			this.outToServer.writeBytes(msg + "\n");
-			System.out.println("Mensagem enviada com sucesso.");
 
 			try{
 				this.outToServer.flush();
@@ -108,7 +107,6 @@ public class Client{
 
 	public void setEnderecoIp(String novoEnd){
 		this.enderecoIp = novoEnd;
-		System.out.println("Tentando conectar em " + this.enderecoIp);
 		this.connect();
 	}
 
@@ -149,7 +147,6 @@ public class Client{
 			try{
 				this.socketToServer = new Socket(this.enderecoIp, 20000);
 				this.connected = true;
-				System.out.println("Conectado!");
 			}catch(UnknownHostException e){
 				System.out.println("Host nao encontrado.");
 			}catch(IOException e){
@@ -163,10 +160,8 @@ public class Client{
 	public void login(String login, String senha){
 		String msg = "LOGINRQST#" + login + "#" + senha;
 
-		System.out.println("Enviando requisicao de login...");
 		try{
 			this.outToServer.writeBytes(msg + "\n");
-			System.out.println("Mensagem enviada com sucesso.");
 
 			try{
 				this.outToServer.flush();
@@ -193,14 +188,14 @@ public class Client{
 
 									try{
 										this.usuario = (Usuario) userReader.readObject();
-										this.usuario.getListaArquivos().setAllNotSynced();
+										System.out.println("Informacoes do usuario carregadas.");
+										
+										this.usuario.getListaArquivos().clearAllStats();
 										System.out.println(this.usuario.getListaArquivos().listagem());
 									}catch(ClassNotFoundException e){
 										System.out.println("Falha de classe nao encontrada!");
 									}
-									System.out.println("Informacoes do usuario carregadas.");
-
-									System.out.println("Iniciando sincronizacao ... ");
+									
 									this.sync = new Sincronizador(this, this.socketToServer);
 									this.sync.start();
 								}catch (IOException e) {
@@ -224,10 +219,8 @@ public class Client{
 	public void signUp(String login, String senha){
 		String msg = "SIGNUP#" + login + "#" + senha;
 
-		System.out.println("Enviando requisicao de cadastro...");
 		try{
 			this.outToServer.writeBytes(msg + "\n");
-			System.out.println("Mensagem enviada com sucesso.");
 
 			try{
 				this.outToServer.flush();
@@ -268,9 +261,6 @@ public class Client{
 		//transfere o arquivo para a pasta de compartilhamento
 		Arquivo file = new Arquivo(this.filesDir + temp[temp.length - 1], this.usuario.getLogin());
 		TransferidorArquivo transfer = new TransferidorArquivo(file, caminho);
-		System.out.println("Transferindo arquivo para pasta ... ");
-		//adiciona o arquivo na lista do usuario
-		this.usuario.getListaArquivos().addArquivo(file);
 		transfer.start();
 	}
 
@@ -352,7 +342,8 @@ class TransferidorArquivo extends Thread{
 		this.destino.setReadable(true);
 		this.original.setReadyStatus(true);
 		this.original.setSyncStatus(false);
-
+		System.out.println(this.original.getSyncStatus());
+		
 		System.out.println("Arquivo " + this.destino.getPath() + " adicionado.");
 
 	}
