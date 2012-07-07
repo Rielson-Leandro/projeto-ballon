@@ -67,10 +67,10 @@ public class ListaArquivos implements Serializable{
 
 	
 	public String listagem(){
-		String retorno = "Listagem dos arquivos.\nTamanho : " + this.lista.size() + "Arquivos: \n";
+		String retorno = "Listagem dos arquivos.\nTamanho : " + this.lista.size() + " Arquivos: \n";
 		
 		for (int i = 0; i < this.lista.size() ; i++) {
-			retorno = retorno + "   " + i + "- " + this.lista.get(i).getCaminho() + " | " + this.lista.get(i).getLoginUploader() + " | " + this.lista.get(i).getHash() + "\n";
+			retorno = retorno + "   " + i + "- " + this.lista.get(i).getCaminho() + " | " + this.lista.get(i).getLoginUploader() + " | " + this.lista.get(i).getHash() + " | Ready: " + this.lista.get(i).getReadyStatus() + " | Synced: " + this.lista.get(i).getSyncStatus() + " | Syncing: " + this.lista.get(i).isSyncing() + "\n";
 		}
 		
 		retorno = retorno + " ===== FIM DA LISTA =====";
