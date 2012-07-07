@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
@@ -40,9 +41,12 @@ public class Socket {
 	byte[] FIN_BYTE = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1};
 	byte[] FIN_ACK_BYTE = {0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,1};
 
-	ConcurrentHashMap<Integer, Pacote> enviados= new ConcurrentHashMap<Integer, Pacote>();
+	HashMap<Integer, Pacote> enviados= new HashMap<Integer, Pacote>();
 	ConcurrentHashMap<Integer,byte[]> recebidos = new ConcurrentHashMap<Integer,byte[]>();
-
+	
+	Object syncEnviados = new Object();
+	
+	AtomicBoolean close = new AtomicBoolean(false);
 	public Socket(){
 
 	}
@@ -71,24 +75,29 @@ public class Socket {
 
 		@Override
 		public void run() {
-			if(nextseqnum<=base_envio.get()+cwin.get()){
-
-				try {
-					bytes_lidos = arquivo_envio.read(dados,Pacote.head_payload,Pacote.util_load);
-					OperacoesBinarias.inserirCabecalho(dados, nextseqnum, 0, false, false, false, false, bytes_lidos, 0);
-					DatagramPacket pacote = new DatagramPacket(dados, dados.length, endereco_cliente, porta_cliente); 
-					socket.send(pacote);
-					enviados.put(nextseqnum, new Pacote(pacote,System.currentTimeMillis(),bytes_lidos));
-					socket.send(pacote);
-					nextseqnum++;
-				} catch (IOException e) {
-					e.printStackTrace();
+			if(nextseqnum<base_envio.get()+cwin.get()){
+				int k = (base_envio.get()+cwin.get())-nextseqnum;
+//				System.out.println("K= "+k);
+				while(k-->0){
+					try {
+						bytes_lidos = arquivo_envio.read(dados,Pacote.head_payload,Pacote.util_load);
+						OperacoesBinarias.inserirCabecalho(dados, nextseqnum, 0, false, false, false, false, bytes_lidos, 0);
+						DatagramPacket pacote = new DatagramPacket(dados, dados.length, endereco_cliente, porta_cliente); 
+						socket.send(pacote);
+//						System.out.println(nextseqnum+" enviado");
+						synchronized (syncEnviados) {
+							enviados.put(nextseqnum, new Pacote(pacote,System.currentTimeMillis(),bytes_lidos));
+						}
+						socket.send(pacote);
+						nextseqnum++;
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+					
+					if(!timeout_rodando.get()){
+						new Timer().scheduleAtFixedRate(new Timeout(), 100, 100);
+					}
 				}
-				
-				if(!timeout_rodando.get()){
-					new Timer().scheduleAtFixedRate(new Timeout(), 100, 100);
-				}
-			
 		}else{
 			System.out.println("Não da");
 			if(!timeout_rodando.get()){
@@ -99,6 +108,10 @@ public class Socket {
 		while(!enviados.isEmpty() && enviados.get(base_envio.get())!=null){
 			ultimoEnviado += enviados.get(base_envio.get()).getDataLentgh();
 			enviados.remove(base_envio.getAndIncrement());
+		}
+		
+		if(close.get()){
+			this.cancel();
 		}
 	}
 }
@@ -137,6 +150,10 @@ private class ReceiverPackets extends TimerTask{
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		
+		if(close.get()){
+			this.cancel();
+		}
 	}
 }
 
@@ -154,11 +171,15 @@ class ReceiverAcks extends TimerTask{
 			}else if(OperacoesBinarias.extrairACK(buffer)){
 				if(enviados.get(OperacoesBinarias.extrairNumeroReconhecimento(buffer))!=null){
 					enviados.get(OperacoesBinarias.extrairNumeroReconhecimento(buffer)).setEnviado(true);
-					cwin.getAndAdd(10);
+					cwin.getAndAdd(100);
 				}
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
+		}
+		
+		if(close.get()){
+			this.cancel();
 		}
 	}
 }
@@ -168,22 +189,24 @@ class Timeout extends TimerTask{
 	@Override
 	public void run() {
 		try {
-			if(!enviados.isEmpty()){
-				if(enviados.get(base_envio.get())!=null){
-					if((System.currentTimeMillis()-enviados.get(base_envio.get()).send_time)>200){
-						System.out.println("TimeoutEvent");
-						int indice = base_envio.get();
-						while(enviados.get(indice)!=null){
-							socket.send(enviados.get(indice).pkt);
-							cwin.set(cwin.get()/2);
-							indice++;
+			synchronized (syncEnviados) {
+				if(!enviados.isEmpty()){
+					if(enviados.get(base_envio.get())!=null){
+						if((System.currentTimeMillis()-enviados.get(base_envio.get()).send_time)>500){
+							System.out.println("TimeoutEvent");
+							int indice = base_envio.get();
+							while(enviados.get(indice)!=null){
+								socket.send(enviados.get(indice).pkt);
+								cwin.set(cwin.get()/2);
+								indice++;
+							}
+
+
 						}
-
-
 					}
+				}else{
+					timeout_rodando.set(false);
 				}
-			}else{
-				timeout_rodando.set(false);
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -191,6 +214,11 @@ class Timeout extends TimerTask{
 		} catch (Exception e) {
 			e.printStackTrace();
 			timeout_rodando.set(false);
+			close.set(true);
+		}
+		
+		if(close.get()){
+			this.cancel();
 		}
 	}
 }
@@ -201,7 +229,7 @@ private class Armazena extends TimerTask{
 	public void run() {
 		while(recebidos.get(base_recepcao.get())!=null){
 			try {
-				arquivo_recebido.write(recebidos.get(base_recepcao.get()), Pacote.head_payload, OperacoesBinarias.extrairComprimentoDados(recebidos.get(base_recepcao.getAndIncrement())));
+				arquivo_recebido.write(recebidos.get(base_recepcao.get()), Pacote.head_payload, OperacoesBinarias.extrairComprimentoDados(recebidos.get(base_recepcao.get())));
 				bytes_recebidos+= OperacoesBinarias.extrairComprimentoDados(recebidos.get(base_envio.get()));
 				recebidos.remove(base_envio.getAndIncrement());
 			} catch (IOException e) {
