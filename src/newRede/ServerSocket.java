@@ -18,13 +18,13 @@ public class ServerSocket extends Socket{
 	
 	public ServerSocket(int listerningPort,FileInputStream arquivo_enviar) throws IOException,FileNotFoundException{
 		super();
-		socket = new DatagramSocket(listerningPort){
+		super.socket = new DatagramSocket(listerningPort){
 			@Override
 			synchronized public void send(DatagramPacket packet) throws IOException{ 
 				super.send(packet);
 			}
 		};
-		this.arquivo_envio = arquivo_enviar;
+		super.arquivo_envio = arquivo_enviar;
 	}
 
 	public Socket accept() throws IOException{
@@ -32,8 +32,8 @@ public class ServerSocket extends Socket{
 		DatagramPacket packet = new DatagramPacket(new byte[Pacote.head_payload], Pacote.head_payload);
 		super.socket.receive(packet);
 		if(OperacoesBinarias.extrairSYN(packet.getData())){
-			endereco_cliente = packet.getAddress();
-			porta_cliente = packet.getPort();
+			super.endereco_cliente = packet.getAddress();
+			super.porta_cliente = packet.getPort();
 			System.out.println("Nova solicitação de conexão");
 			System.out.println("Endereço do cliente "+ packet.getAddress());
 			System.out.println("Porta do cliente "+ packet.getPort());

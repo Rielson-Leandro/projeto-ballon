@@ -10,10 +10,9 @@ import newRede.Socket;
 public class Server {
 	ServerSocket socket;
 	Socket socket2;
-
-	public Server() throws FileNotFoundException, IOException {
-		socket = new ServerSocket(3000, new FileInputStream("rac2011.iso"));
-		socket2 = socket.accept();
+	
+	public static void main(String[] args) throws FileNotFoundException, IOException {
+		ServerSocket server = new ServerSocket(3000, new FileInputStream("rac2011.iso"));
+		Socket so = server.accept();
 	}
-
 }

@@ -69,14 +69,7 @@ public class Socket {
 	public Socket(int port) throws IOException {
 		
 	}
-	
-	public void setCliente(int portaCliente, InetAddress enderecoCliente,FileInputStream arquivo_enviar){
-		this.endereco_cliente = enderecoCliente;
-		this.porta_cliente = portaCliente;
-		this.arquivo_envio = arquivo_enviar;
 		
-	}
-	
 	class Sender extends TimerTask{
 		byte[] dados = new byte[Pacote.default_size];
 		int bytes_lidos = 0;
@@ -93,6 +86,7 @@ public class Socket {
 						socket.send(pacote);
 						enviados.put(nextseqnum++, new Pacote(pacote,System.currentTimeMillis(),bytes_lidos));
 						socket.send(pacote);
+						System.out.println("Novo Pacote");
 					}
 					if(!timeout_rodando){
 						//iniciar um timeout
