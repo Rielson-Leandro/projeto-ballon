@@ -2,6 +2,7 @@ package entidades;
 
 import java.io.Serializable;
 import java.io.File;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class Arquivo implements Serializable{
 
@@ -10,20 +11,20 @@ public class Arquivo implements Serializable{
 	private String[] caminho;
 	private String loginUploader;
 	private String hash;
-	private boolean isSynced;
-	private boolean isSyncing;
-	private boolean isReady;
+	private AtomicBoolean isSynced;
+	private AtomicBoolean isSyncing;
+	private AtomicBoolean isReady;
 	private long ultimaMod;
-
+	
 	public Arquivo(String caminho, String uploader){
 		this.caminho = caminho.replace(File.separatorChar, '#').split("#");
 		this.nomeOriginal = this.caminho[this.caminho.length - 1];
 		this.loginUploader = uploader;
 		String temp = this.loginUploader + this.nomeOriginal;
 		this.hash = Integer.toString(temp.hashCode());
-		this.isSynced = false;
-		this.isSyncing = false;
-		this.isReady = false;
+		this.isSynced = new AtomicBoolean(false);
+		this.isSyncing = new AtomicBoolean(false);
+		this.isReady = new AtomicBoolean(false);
 		File temp2 = new File(caminho);
 		this.ultimaMod = temp2.lastModified();
 	}
@@ -55,19 +56,19 @@ public class Arquivo implements Serializable{
 	}
 
 	public synchronized boolean getSyncStatus(){
-		return this.isSynced;
+		return this.isSynced.get();
 	}
 
 	public synchronized boolean isSyncing() {
-		return isSyncing;
+		return isSyncing.get();
 	}
 
 	public synchronized void setSyncing(boolean isSyncing) {
-		this.isSyncing = isSyncing;
+		this.isSyncing.set(isSyncing);
 	}
 
 	public synchronized boolean getReadyStatus(){
-		return this.isReady;
+		return this.isReady.get();
 	}
 
 	public synchronized long getUltimaModificacao(){
@@ -97,11 +98,11 @@ public class Arquivo implements Serializable{
 	}
 
 	public synchronized void setSyncStatus(boolean status){
-		this.isSynced = status;
+		this.isSynced.set(status);
 	}
 
 	public synchronized void setReadyStatus(boolean status){
-		this.isReady = status;
+		this.isReady.set(status);
 	}
 
 }

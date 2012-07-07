@@ -50,52 +50,43 @@ public class Transfer extends Thread{
 		this.reciever = true;
 		this.rcvIsClient = isClient;
 
-		System.out.println("Inicializando transferidor de arquivo para" + skt.getRemoteSocketAddress().toString());
-
 		this.socket = skt;
 		this.original = original;
 
 		this.arq = arquivo;
 
 		if(isClient){
-			System.out.print("Criando arquivo " + this.arq.getNomeOriginal() + ".file ... ");
+			
 			File temp = new File(fileDir + this.arq.getNomeOriginal());
-			
+
 			try{
 				temp.createNewFile();
-				System.out.println("Criado.");
 			}catch(IOException e){
-				System.out.println("Falha.");
 			}
 
 			System.out.print("Inicializando canais de comunicacao ... ");
 			try{
 				this.outDados = new FileOutputStream(temp);
-				System.out.println("Canais criados.\nTransferidor de arquivo inicializado.");
 			}catch(IOException e){
 				System.out.println("Falha.");
 			}
-			
+
 		}else{
-			
-			System.out.print("Criando arquivo " + this.arq.getHash() + ".file ... ");
+
 			File temp = new File(fileDir + this.arq.getHash() + ".file");
-			
+
 			try{
 				temp.createNewFile();
-				System.out.println("Criado.");
 			}catch(IOException e){
 				System.out.println("Falha.");
 			}
 
-			System.out.print("Inicializando canais de comunicacao ... ");
 			try{
 				this.outDados = new FileOutputStream(temp);
-				System.out.println("Canais criados.\nTransferidor de arquivo inicializado.");
 			}catch(IOException e){
 				System.out.println("Falha.");
 			}
-			
+
 		}
 	}
 
@@ -191,11 +182,8 @@ public class Transfer extends Thread{
 
 		if(this.sender){
 
-			System.out.println("Conectado...");
 			File arquivo = new File(this.estado.getPath());
-			System.out.println("Arquivo pronto para ser transferido.");
 
-			System.out.println("Iniciando canais de comunicacao para: " + this.estado.getPath());
 			FileInputStream fileIn;
 			DataOutputStream dataOut;
 			try {
@@ -242,8 +230,6 @@ public class Transfer extends Thread{
 
 					}while(lidos != -1 && this.stayAlive);
 
-					System.out.println("Transferencia concluida: Fechando canais de comunicacao...");
-
 					this.socket.close();
 					fileIn.close();
 
@@ -254,8 +240,10 @@ public class Transfer extends Thread{
 				System.out.println("O arquivo " + this.estado.getPath() + " nao foi encontrado.");
 			}
 
-			this.arq.setSyncing(false);
-			this.arq.setSyncStatus(true);
+			if(!this.rcvIsClient){
+				this.arq.setSyncing(false);
+				this.arq.setSyncStatus(true);
+			}
 
 			this.deleteState();
 		}
@@ -263,14 +251,10 @@ public class Transfer extends Thread{
 
 		if(this.reciever){
 
-			System.out.println("Transferidor para " + this.socket.getRemoteSocketAddress().toString() + " em execucao ...");
-
-			System.out.print("Inicializando canais de comunicacao ... ");
 			try{
 
 				DataInputStream entradaDados = new DataInputStream(this.socket.getInputStream());
 				DataOutputStream saidaDados = new DataOutputStream(this.outDados);
-				System.out.println("Canais criados.\nTransferidor de arquivo inicializado.");
 
 				int lidos = 0;
 				this.arq.setSyncing(true);
@@ -304,11 +288,9 @@ public class Transfer extends Thread{
 
 				this.arq.setReadyStatus(true);
 
-				System.out.println("Transferencia concluida.");
-
 				this.socket.close();
 				this.original.close();
-				
+
 				if(this.rcvIsClient){
 					this.arq.setSyncing(false);
 					this.arq.setSyncStatus(true);
@@ -319,8 +301,6 @@ public class Transfer extends Thread{
 			}
 
 		}
-
-		System.out.println("Transferidor finalizado!.");
 
 	}
 
