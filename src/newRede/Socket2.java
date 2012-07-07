@@ -38,18 +38,18 @@ public class Socket2{
 	private AtomicInteger send_base = new AtomicInteger(0); //base da janela de congestionamento
 	private AtomicInteger nextseqnum = new AtomicInteger(0); //proximo numero de sequencia
 	private AtomicInteger cwin = new AtomicInteger(10); //janela de congestionamento
-	private AtomicInteger ssthresh = new AtomicInteger(128); //limiar de partidade lenta
+	private AtomicInteger ssthresh = new AtomicInteger(64); //limiar de partidade lenta
 	private AtomicInteger quantos_zerou = new AtomicInteger(0);
 	private AtomicInteger restam_prox_cwin = new AtomicInteger(1);	
 	private AtomicLong timeout = new AtomicLong(1000);
 	private AtomicBoolean estimateRTT_process = new AtomicBoolean(); //variavel para detectar que se esta estimando um RTT
 	private AtomicInteger estimateRTT_for_packet = new AtomicInteger(0); //numero do pacote para o qual se esta estimando o RTT
 
-	private int max_win = 256;
+	private int max_win = 128;
 
 	AtomicLong last_send = new AtomicLong(0); //valor do ultimo byte que se tem certeza que foi recebido pelo cliente
 
-	private long min_timeout = 750;
+	private long min_timeout = 500;
 	private long EstimatedRTT = 1000;
 	private long DevRTT = 20;
 
@@ -73,9 +73,9 @@ public class Socket2{
 
 	//Objetos para sincronização
 	Object buffer_cliente = new Object();
+	Object sinc_send_socket = new Object();
 	Object buffer_server = new Object();
 	Object sinc_send_buffer = new Object(); //objeto para sincroniza de escrita e leitura do buffer de pacotes enviados
-	Object sinc_send_socket = new Object();
 	Object sinc_var_timeout = new Object(); //mutex para operações que envolvem mechar com váriavies que estão no calculo de timeout
 	//Objetos para sincronização
 
@@ -112,6 +112,7 @@ public class Socket2{
 	}
 
 	public void close(){
+
 		synchronized (sinc_send_socket) {
 			byte[] to_fin = new byte[Pacote.head_payload];
 			OperacoesBinarias.inserirCabecalho(to_fin, 0, 0, false, false, false, true, 0, 0);
@@ -132,8 +133,6 @@ public class Socket2{
 				close.set(true);
 			}
 		}
-		close.set(true);
-		real_socket.close();
 	}
 
 	public boolean isConnected(){
@@ -173,15 +172,15 @@ public class Socket2{
 		}
 
 		new Thread(new Receiver()).start();
-		new Timer().scheduleAtFixedRate(new Armazena(), 100, 100);
+		new Timer().scheduleAtFixedRate(new Armazena(), 5, 5);
 		new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
 	}
 
 	public Socket2(){
 	}
-	
+
 	public void setCliente(int portaCliente, InetAddress enderecoCliente){
-		
+
 	}
 
 	//classes internas
@@ -210,16 +209,18 @@ public class Socket2{
 									estimateRTT_for_packet.set(nextseqnum.get()); //estimamos o valor para 
 								}
 							}
-							
+
 							nextseqnum.incrementAndGet();
 
-							synchronized (sinc_send_socket) { //adquire reserva do socket para enviar pacote
+							//adquire reserva do socket para enviar pacote
+							synchronized (sinc_send_socket) {
 								real_socket.send(packet);
-								if(!timer_run.get()){//se nenhum temporizador esta ativo ativa um
-									timer_run.set(true);
-									new Thread(new Timeout()).start();
-								}
 							}
+							if(!timer_run.get()){//se nenhum temporizador esta ativo ativa um
+								timer_run.set(true);
+								new Thread(new Timeout()).start();
+							}
+
 						}
 
 					} catch (IOException e) {
@@ -234,6 +235,16 @@ public class Socket2{
 					if(!timer_run.get()){//se nenhum temporizador esta ativo ativa um
 						timer_run.set(true);
 						new Thread(new Timeout()).start();
+					}
+				}
+				
+				synchronized (sinc_send_buffer) {
+					int indice = send_base.get();
+					while(send_packet_buffer.get(indice)!=null && send_packet_buffer.get(indice).isEnviado()){
+						last_send.addAndGet(send_packet_buffer.get(indice).dataLenth);
+						send_base.incrementAndGet();//incrementa o valor send_base
+						send_packet_buffer.remove(indice); //remove o pacore do buffer
+						send_packets_cont.incrementAndGet();
 					}
 				}
 			}
@@ -254,7 +265,7 @@ public class Socket2{
 
 					int key = OperacoesBinarias.extrairNumeroReconhecimento(buffer);
 					int seqNum = OperacoesBinarias.extrairNumeroSequencia(buffer);
-				
+
 					if(OperacoesBinarias.extrairFIN(buffer)){
 						close.set(true);
 						Socket2.this.close();
@@ -266,11 +277,11 @@ public class Socket2{
 
 							synchronized (sinc_send_buffer) {
 
-								
+
 								if(!send_packet_buffer.isEmpty() && send_packet_buffer.get(key)!=null){ //verifica se o pacote esta dentro das possibilidades do buffer
 
 									temp = send_packet_buffer.get(key);
-								
+
 									if(!temp.isEnviado()){
 										temp.setEnviado(true);
 										cwin.set(Math.min(cwin.get()+1, max_win));
@@ -288,6 +299,10 @@ public class Socket2{
 
 						}else{
 							System.out.println("Recebi um ACK de um host estranho. Cuidado a rede pode estar sendo invadida! ^~^");
+							System.out.println(packet.getAddress());
+							System.out.println(packet.getPort());
+							System.out.println(client_port);
+							System.out.println(client_adress);
 						}
 
 					}else{ //temos um pacote com dados
@@ -297,9 +312,12 @@ public class Socket2{
 							byte[] to_ack = new byte[Pacote.head_payload];
 							OperacoesBinarias.inserirCabecalho(to_ack, 0, seqNum, true, false, false, false, 0, rcv_base.get()+rwin.get());
 							DatagramPacket ack = new DatagramPacket(to_ack, Pacote.head_payload,server_adress,server_port);
-							synchronized (sinc_send_socket) { //envia ack
+							//envia ack
+							synchronized (sinc_send_socket) {
 								real_socket.send(ack);
 							}
+
+
 
 							if(seqNum>=rcv_base.get()){ //se temos o proximo pacote esperado
 								rec_packet_buffer.put(seqNum, buffer);
@@ -335,34 +353,38 @@ public class Socket2{
 
 
 				if(!send_packet_buffer.isEmpty()){
-					if(System.currentTimeMillis()-send_packet_buffer.get(0).send_time>(min_timeout/2)){
+					synchronized (sinc_send_buffer) {
+						if(System.currentTimeMillis()-send_packet_buffer.get(send_base.get()).send_time>(min_timeout/2)){
 
-						if(!send_packet_buffer.get(0).isEnviado()){
+							if(!send_packet_buffer.get(send_base.get()).isEnviado()){
 
-							if(timeouts%3==0){
-								ssthresh.set((cwin.get()/2)+10); // limiar de envio e setado pela metade
-								cwin.set(cwin.get()/2); //janela de congestionamento e setada para 1MSS
-								quantos_zerou.set(0);
-								restam_prox_cwin.set(1);
-							}
-							timeouts++;
+								if(timeouts%3==0){
+									ssthresh.set((cwin.get()/2)+10); // limiar de envio e setado pela metade
+									cwin.set(cwin.get()/2); //janela de congestionamento e setada para 1MSS
+									quantos_zerou.set(0);
+									restam_prox_cwin.set(1);
+								}
+								timeouts++;
 
-							synchronized (sinc_send_socket) {
-								try {
-									int indice = 0;
-									while(indice<send_packet_buffer.size() && !send_packet_buffer.isEmpty() && !send_packet_buffer.get(indice).isEnviado()){
-										real_socket.send(send_packet_buffer.get(indice).setSend_time_and_getme(System.currentTimeMillis()).pkt);
-										indice++;
+								synchronized (sinc_send_socket) {
+									try {
+										int indice = send_base.get();
+										synchronized (sinc_send_socket) {
+											while(indice<send_packet_buffer.size() && !send_packet_buffer.isEmpty() && !send_packet_buffer.get(indice).isEnviado()){
+												real_socket.send(send_packet_buffer.get(indice).setSend_time_and_getme(System.currentTimeMillis()).pkt);
+												indice++;
+											}
+										}
+									} catch (IOException e) {
+										System.out.println("Problema com o socket de envio");
+										System.out.println("Fechando conexão");
+										close.set(true);
+										continua = false;
 									}
-								} catch (IOException e) {
-									System.out.println("Problema com o socket de envio");
-									System.out.println("Fechando conexão");
-									close.set(true);
-									continua = false;
 								}
 							}
-						}
 
+						}
 					}
 				}else{
 					continua=false;
@@ -378,7 +400,7 @@ public class Socket2{
 		int dataLength;
 		@Override
 		public void run() {
-			
+
 			while(rec_packet_buffer.get(rcv_base.get())!=null){
 				byte[] dados = rec_packet_buffer.get(rcv_base.get());
 				dataLength= OperacoesBinarias.extrairComprimentoDados(dados);
@@ -393,23 +415,7 @@ public class Socket2{
 		}
 
 	}
-	
-	class AndarJanela extends TimerTask{
 
-		@Override
-		public void run() {	
-			synchronized (sinc_send_buffer) {
-				while(!send_packet_buffer.isEmpty() && send_packet_buffer.get(0).isEnviado()){
-					last_send.addAndGet(send_packet_buffer.get(0).dataLenth);
-					send_base.incrementAndGet();//incrementa o valor send_base
-					send_packet_buffer.remove(0); //remove o pacore do buffer
-					send_packets_cont.incrementAndGet();
-				}
-			}
-		}
-		
-	}
-	
 	class Bandwidth extends TimerTask{
 
 		double repVelo = 0;

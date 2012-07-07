@@ -18,12 +18,7 @@ public class ServerSocket extends Socket2{
 	
 	public ServerSocket(int listerningPort,FileInputStream arquivo_enviar) throws IOException,FileNotFoundException{
 		super();
-		super.real_socket = new DatagramSocket(listerningPort){
-			@Override
-			synchronized public void send(DatagramPacket packet) throws IOException{ 
-				super.send(packet);
-			}
-		};
+		super.real_socket = new DatagramSocket(listerningPort);
 		super.setArquivo_enviado(arquivo_enviar);
 	}
 
@@ -39,7 +34,6 @@ public class ServerSocket extends Socket2{
 			System.out.println("Porta do cliente "+ packet.getPort());
 			super.real_socket.send(new DatagramPacket(SYN_ACK_BYTE, Pacote.head_payload,packet.getAddress(),packet.getPort()));
 			super.real_socket.send(new DatagramPacket(SYN_ACK_BYTE, Pacote.head_payload,packet.getAddress(),packet.getPort()));
-			new Timer().scheduleAtFixedRate(new AndarJanela(), 50, 50);
 			new Thread(new Receiver()).start();
 			new Thread(new Sender()).start();
 		}
