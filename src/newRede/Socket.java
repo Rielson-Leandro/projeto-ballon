@@ -80,13 +80,13 @@ public class Socket {
 				int numero_pacotes_enviar = (base_envio.get()+cwin.get())-nextseqnum;
 				try {
 					for (int i = 0; i < numero_pacotes_enviar && arquivo_envio.available()>0; i++) {
+						System.out.println("Novo Pacote "+ nextseqnum);
 						bytes_lidos = arquivo_envio.read(dados,Pacote.head_payload,Pacote.util_load);
 						OperacoesBinarias.inserirCabecalho(dados, nextseqnum, 0, false, false, false, false, bytes_lidos, 0);
 						DatagramPacket pacote = new DatagramPacket(dados, dados.length, endereco_cliente, porta_cliente); 
 						socket.send(pacote);
 						enviados.put(nextseqnum++, new Pacote(pacote,System.currentTimeMillis(),bytes_lidos));
 						socket.send(pacote);
-						System.out.println("Novo Pacote");
 					}
 					if(!timeout_rodando){
 						//iniciar um timeout
@@ -123,6 +123,7 @@ public class Socket {
 				if(OperacoesBinarias.extrairFIN(buffer)){
 					
 				}else{
+					System.out.println("Pacote recebido"+OperacoesBinarias.extrairNumeroSequencia(buffer));
 					enviarACK(packet.getAddress(), packet.getPort(), OperacoesBinarias.extrairNumeroSequencia(buffer));  //envia ack
 					if(OperacoesBinarias.extrairNumeroSequencia(buffer)>=base_recepcao.get()){
 						recebidos.put(OperacoesBinarias.extrairNumeroSequencia(buffer),buffer);
@@ -143,7 +144,7 @@ public class Socket {
 				byte[] buffer = new byte[Pacote.default_size];
 				DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 				socket.receive(packet);
-				
+				System.out.println("ACK "+OperacoesBinarias.extrairNumeroReconhecimento(buffer));
 				if(OperacoesBinarias.extrairFIN(buffer)){
 					
 				}else if(OperacoesBinarias.extrairACK(buffer)){
@@ -170,6 +171,7 @@ public class Socket {
 						
 			if(!enviados.isEmpty()){
 				if((System.currentTimeMillis()-enviados.get(base_envio.get()).send_time)>100){
+					System.out.println("TimeoutEvent");
 					try {
 						socket.send(enviados.get(base_envio.get()).pkt);
 						cwin.set(cwin.get()/2);
@@ -185,6 +187,7 @@ public class Socket {
 
 		@Override
 		public void run() {
+			System.out.println("Armazendo pacotes do buffer");
 			while(recebidos.get(base_recepcao.get())!=null){
 				try {
 					arquivo_recebido.write(recebidos.get(base_recepcao.get()), Pacote.head_payload, OperacoesBinarias.extrairComprimentoDados(recebidos.get(base_recepcao.getAndIncrement())));
