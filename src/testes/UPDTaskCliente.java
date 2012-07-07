@@ -3,6 +3,7 @@ package testes;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.util.Timer;
 import java.util.TimerTask;
 
 import rede.Pacote;
@@ -42,4 +43,12 @@ public class UPDTaskCliente {
 	
 	}
 	
+	public void start(){
+		new Timer().scheduleAtFixedRate(new UPDCL(), 0, 50);
+		new Timer().schedule(new Bandwidth(), 1000, 1000);
+	}
+	
+	public static void main(String[] args) {
+		new UPDTaskCliente().start();
+	}	
 }
