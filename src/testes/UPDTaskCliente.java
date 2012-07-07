@@ -3,6 +3,7 @@ package testes;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.SocketException;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -16,6 +17,10 @@ public class UPDTaskCliente {
 		DatagramSocket socket;
 		byte[] data = new byte[Pacote.default_size];
 		DatagramPacket packet = new DatagramPacket(data, data.length);
+		
+		public UPDCL(DatagramSocket socket){
+			this.socket = socket;
+		}
 		
 		@Override
 		public void run() {
@@ -43,12 +48,12 @@ public class UPDTaskCliente {
 	
 	}
 	
-	public void start(){
-		new Timer().scheduleAtFixedRate(new UPDCL(), 0, 50);
+	public void start() throws SocketException{
+		new Timer().scheduleAtFixedRate(new UPDCL(new DatagramSocket(3000)), 0, 50);
 		new Timer().schedule(new Bandwidth(), 1000, 1000);
 	}
 	
-	public static void main(String[] args) {
+	public static void main(String[] args) throws SocketException {
 		new UPDTaskCliente().start();
 	}	
 }
