@@ -9,11 +9,12 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import newRede.Socket;
+import newRede.Socket2;
 
 public class Cliente {
 		
 	public static void main(String[] args) throws UnknownHostException, FileNotFoundException, IOException {
-		Socket socket = new Socket(3000, InetAddress.getByName("172.20.4.99"), new FileOutputStream("rac2011.iso"));
+		Socket2 socket = new Socket2(3000, InetAddress.getByName("172.20.4.99"), new FileOutputStream("rac2011.iso"));
 		
 	}
 }

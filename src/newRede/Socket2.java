@@ -8,9 +8,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Hashtable;
+import java.net.SocketException;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,12 +22,12 @@ import rede.Pacote;
 
 public class Socket2{
 	//Socket do lado client
-	private int server_port; //Usado tambem do lado server;
-	private InetAddress server_adress;
+	protected int server_port; //Usado tambem do lado server;
+	protected InetAddress server_adress;
 
 	//Socket do lado servidor;
-	private int client_port; //Usado tambem do lado cliente;
-	private InetAddress client_adress;
+	protected int client_port; //Usado tambem do lado cliente;
+	protected InetAddress client_adress;
 
 	protected DatagramSocket real_socket;
 
@@ -49,7 +47,6 @@ public class Socket2{
 
 	private int max_win = 256;
 
-	AtomicLong temp_SampleRTT = new AtomicLong(0);
 	AtomicLong last_send = new AtomicLong(0); //valor do ultimo byte que se tem certeza que foi recebido pelo cliente
 
 	private long min_timeout = 750;
@@ -83,7 +80,7 @@ public class Socket2{
 	//Objetos para sincronização
 
 	//Buffers internos para Pacotes
-	ArrayList<Pacote> send_packet_buffer = new ArrayList<Pacote>();
+	ConcurrentHashMap<Integer,Pacote> send_packet_buffer = new ConcurrentHashMap<Integer,Pacote>();
 	ConcurrentHashMap<Integer, byte[]> rec_packet_buffer = new ConcurrentHashMap<Integer,byte[]>(); //chave vai ser numero de sequencia
 	//Buffers internos para Pacotes
 
@@ -159,8 +156,9 @@ public class Socket2{
 		this.last_send.set(0);
 	}
 
-	//usado pelo cliente para indicar criar um socket para o servidor
-	public Socket2(int porta_servidor, InetAddress endereco_servidor) throws IOException {
+	//usado por quem vai receber um arquivo
+	public Socket2(int porta_servidor, InetAddress endereco_servidor,FileOutputStream arquivo) throws IOException {
+		this.setArquivo_recebido(arquivo);
 		real_socket = new DatagramSocket();
 		this.server_port = porta_servidor;
 		this.server_adress = endereco_servidor;
@@ -175,23 +173,19 @@ public class Socket2{
 		}
 
 		new Thread(new Receiver()).start();
+		new Timer().scheduleAtFixedRate(new Armazena(), 100, 100);
 		new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
 	}
 
-	//usado pelo servidor para ficar escutando na porta especifica
-	public Socket2(int port) throws IOException {
-		real_socket = new DatagramSocket(port);
+	public Socket2(){
 	}
-
+	
 	public void setCliente(int portaCliente, InetAddress enderecoCliente){
-		this.client_adress = enderecoCliente;
-		this.client_port = portaCliente;
-		new Thread(new Receiver()).start();
-		new Thread(new Sender()).start();
+		
 	}
 
 	//classes internas
-	private class Sender extends Thread{
+	class Sender extends Thread{
 		byte[] to_packet = new byte[Pacote.default_size]; //array de bytes com dados lidos
 		int as_read = 0; //inteiro para ver quantos bytes foram lidos
 
@@ -211,7 +205,7 @@ public class Socket2{
 							Pacote pacote = new Pacote(packet,System.currentTimeMillis(),as_read); //Cria pacote de buffer
 
 							synchronized (sinc_send_buffer) {
-								send_packet_buffer.add(pacote);
+								send_packet_buffer.put(nextseqnum.get(),pacote);
 								if(!estimateRTT_process.get()){ //Se nenhum estimados de RTT estÃ¡ em progresso inicia um
 									estimateRTT_for_packet.set(nextseqnum.get()); //estimamos o valor para 
 								}
@@ -242,22 +236,12 @@ public class Socket2{
 						new Thread(new Timeout()).start();
 					}
 				}
-
-				synchronized (sinc_send_buffer) {
-
-					while(!send_packet_buffer.isEmpty() && send_packet_buffer.get(0).isEnviado()){
-						last_send.addAndGet(send_packet_buffer.get(0).dataLenth);
-						send_base.incrementAndGet();//incrementa o valor send_base
-						send_packet_buffer.remove(0); //remove o pacore do buffer
-						send_packets_cont.incrementAndGet();
-					}
-				}
 			}
 			System.out.println("Sender encerrando...");
 		}
 	}
 
-	private class Receiver extends Thread{
+	class Receiver extends Thread{
 
 		@Override
 		public void run() {
@@ -270,13 +254,10 @@ public class Socket2{
 
 					int key = OperacoesBinarias.extrairNumeroReconhecimento(buffer);
 					int seqNum = OperacoesBinarias.extrairNumeroSequencia(buffer);
-					int dataLength = OperacoesBinarias.extrairComprimentoDados(buffer);
-
+				
 					if(OperacoesBinarias.extrairFIN(buffer)){
 						close.set(true);
 						Socket2.this.close();
-					}else if(OperacoesBinarias.extrairSYN(buffer)){
-
 					}else if(OperacoesBinarias.extrairACK(buffer)){
 
 						if(packet.getAddress().equals(client_adress) && packet.getPort()==client_port){ //tenho um ack de quem me comunico
@@ -285,16 +266,11 @@ public class Socket2{
 
 							synchronized (sinc_send_buffer) {
 
-								int remap = key-send_packets_cont.get();
+								
+								if(!send_packet_buffer.isEmpty() && send_packet_buffer.get(key)!=null){ //verifica se o pacote esta dentro das possibilidades do buffer
 
-								if((remap)<send_packet_buffer.size() && !send_packet_buffer.isEmpty() && remap>=0){ //verifica se o pacote esta dentro das possibilidades do buffer
-
-									temp = send_packet_buffer.get(remap);
-
-
-									temp_SampleRTT.set(System.currentTimeMillis()-temp.send_time); //atualiza variavel com sampleRTT temporário
-
-
+									temp = send_packet_buffer.get(key);
+								
 									if(!temp.isEnviado()){
 										temp.setEnviado(true);
 										cwin.set(Math.min(cwin.get()+1, max_win));
@@ -314,8 +290,6 @@ public class Socket2{
 							System.out.println("Recebi um ACK de um host estranho. Cuidado a rede pode estar sendo invadida! ^~^");
 						}
 
-					}else if(OperacoesBinarias.extrairRST(buffer)){
-
 					}else{ //temos um pacote com dados
 
 						if(packet.getAddress().equals(server_adress) && packet.getPort()==server_port){ //tenho um ack de quem me comunico
@@ -327,23 +301,7 @@ public class Socket2{
 								real_socket.send(ack);
 							}
 
-							if(seqNum==rcv_base.get()){ //se temos o proximo pacote esperado
-								arquivo_recebido.write(buffer, Pacote.head_payload, dataLength); //escreve para camada de cima
-								rcv_base.incrementAndGet();//incrementa a base da janela
-								velocidade.getAndAdd(dataLength);
-
-								//tenta pegar mais pacotes que possa estar no buffer de recepção
-								while(rec_packet_buffer.get(rcv_base.get())!=null){
-									byte[] dados = rec_packet_buffer.get(rcv_base.get());
-									dataLength = OperacoesBinarias.extrairComprimentoDados(dados);
-									seqNum = OperacoesBinarias.extrairNumeroSequencia(dados);
-									velocidade.getAndAdd(dataLength);
-									rcv_base.incrementAndGet(); //incrementa a base de recepção para o proximo pacote
-									arquivo_recebido.write(dados, Pacote.head_payload,dataLength);
-								}
-
-							}else if(seqNum>rcv_base.get()){ //se não temos o proximo pacote esperado
-								//coloca ele no buffer
+							if(seqNum>=rcv_base.get()){ //se temos o proximo pacote esperado
 								rec_packet_buffer.put(seqNum, buffer);
 							}else{
 								System.out.println("Retransmissao");
@@ -360,7 +318,7 @@ public class Socket2{
 
 	}
 
-	private class Timeout implements Runnable{
+	class Timeout implements Runnable{
 		protected boolean continua = true;
 		protected int timeouts;
 
@@ -416,16 +374,18 @@ public class Socket2{
 		}
 	}
 
-	private class Armazena extends TimerTask{
-
+	class Armazena extends TimerTask{
+		int dataLength;
 		@Override
 		public void run() {
+			
 			while(rec_packet_buffer.get(rcv_base.get())!=null){
+				byte[] dados = rec_packet_buffer.get(rcv_base.get());
+				dataLength= OperacoesBinarias.extrairComprimentoDados(dados);
+				velocidade.getAndAdd(dataLength);
+				rcv_base.incrementAndGet(); //incrementa a base de recepção para o proximo pacote
 				try {
-					int comprimentoPacote = OperacoesBinarias.extrairComprimentoDados(rec_packet_buffer.get(rcv_base.get()));
-					arquivo_recebido.write(rec_packet_buffer.get(rcv_base.get()), Pacote.head_payload,comprimentoPacote);
-					last_send.set(comprimentoPacote);
-					rec_packet_buffer.remove(rcv_base.getAndIncrement());
+					arquivo_recebido.write(dados, Pacote.head_payload,dataLength);
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -433,8 +393,24 @@ public class Socket2{
 		}
 
 	}
+	
+	class AndarJanela extends TimerTask{
 
-	private class Bandwidth extends TimerTask{
+		@Override
+		public void run() {	
+			synchronized (sinc_send_buffer) {
+				while(!send_packet_buffer.isEmpty() && send_packet_buffer.get(0).isEnviado()){
+					last_send.addAndGet(send_packet_buffer.get(0).dataLenth);
+					send_base.incrementAndGet();//incrementa o valor send_base
+					send_packet_buffer.remove(0); //remove o pacore do buffer
+					send_packets_cont.incrementAndGet();
+				}
+			}
+		}
+		
+	}
+	
+	class Bandwidth extends TimerTask{
 
 		double repVelo = 0;
 
@@ -450,7 +426,7 @@ public class Socket2{
 		}
 	}
 
-	private class Transfered extends TimerTask{
+	class Transfered extends TimerTask{
 		@Override
 		public void run() {
 			System.out.println("Bytes transferidos com sucesso: "+ last_send.get());
