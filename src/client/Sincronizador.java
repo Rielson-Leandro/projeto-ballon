@@ -84,6 +84,7 @@ public class Sincronizador extends Thread{
 					arquivo.setSyncStatus(false);
 					this.enviarArquivo(listaDir[i], arquivo);
 					arquivo.setUltimaModificacao(listaDir[i].lastModified());
+					this.cliente.getUser().getListaArquivos().addArquivo(arquivo);
 				}
 			}
 
@@ -117,7 +118,7 @@ public class Sincronizador extends Thread{
 		for (int i = 0; i < listNotSynced.size(); i++) {
 			//verifica se esta sincronizado(esta na lista mas nao esta no diretorio
 			if(!listNotSynced.get(i).getSyncStatus() && listNotSynced.get(i).getReadyStatus() && !listNotSynced.get(i).isSyncing() && this.firstTime){
-				//se nao estiver, envia arquivo
+				//se nao estiver, solicita arquivo arquivo
 				this.solicitarArquivo(listNotSynced.get(i).getHash());
 			}
 			
@@ -290,12 +291,14 @@ public class Sincronizador extends Thread{
 			this.compararListaDiretorio();
 			//System.out.println("Varredura finalizada!");
 
+			System.out.println(this.cliente.getUser().getListaArquivos().listagem());
+			
 			if(this.firstTime){
 				this.firstTime = false;
 			}
 
 			try{
-				this.sleep(5000);
+				this.sleep(10000);
 			}catch(InterruptedException e){
 				System.out.println("Falha ao enviar a thread sincronizadora aguardar");
 			}
