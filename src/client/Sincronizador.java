@@ -80,10 +80,10 @@ public class Sincronizador extends Thread{
 				//envia
 				Arquivo arquivo = new Arquivo(this.cliente.getFilesDir() + nome[nome.length - 1], this.cliente.getUser().getLogin());
 				if(!arquivo.isSyncing()){
-					temp.setSyncing(true);
-					temp.setSyncStatus(false);
+					arquivo.setSyncing(true);
+					arquivo.setSyncStatus(false);
 					this.enviarArquivo(listaDir[i], arquivo);
-					temp.setUltimaModificacao(listaDir[i].lastModified());
+					arquivo.setUltimaModificacao(listaDir[i].lastModified());
 				}
 			}
 
