@@ -151,6 +151,7 @@ public class miniSocket{
 
 	//usado por quem vai enviar o arquivo
 	public miniSocket(int port) throws IOException {
+		is_server = true;
 		real_socket = new DatagramSocket(port);
 	}
 
@@ -211,11 +212,16 @@ public class miniSocket{
 						}
 					}else{
 						try {
+							//envia um RST para o cliente fechar o fluxo do arquivo
 							DatagramPacket packet = new DatagramPacket(OperacoesBinarias.inserirCabecalho(new byte[Pacote.head_payload], Pacote.head_payload, 0, false, true, false, false, 0, 0), Pacote.head_payload, client_adress, client_port);
 							synchronized (sinc_send_socket) {
 								real_socket.send(packet);
 							}
+							Thread.sleep(500);
+							close();
 						} catch (IOException e) {
+							e.printStackTrace();
+						} catch (InterruptedException e) {
 							e.printStackTrace();
 						}
 					}
@@ -257,6 +263,13 @@ public class miniSocket{
 					int dataLength = OperacoesBinarias.extrairComprimentoDados(buffer);
 
 					if(OperacoesBinarias.extrairFIN(buffer)){
+						if(arquivo_enviar!=null){
+							arquivo_enviar.close();
+						}
+						
+						if(arquivo_receber!=null){
+							arquivo_receber.close();
+						}
 						close.set(true);
 						miniSocket.this.close();
 					}else if(OperacoesBinarias.extrairSYN(buffer)){
@@ -300,6 +313,7 @@ public class miniSocket{
 
 					}else if(OperacoesBinarias.extrairRST(buffer)){
 						arquivo_receber.close();
+						
 					}else{ //temos um pacote com dados
 
 						if(packet.getAddress().equals(server_adress) && packet.getPort()==server_port){ //tenho um ack de quem me comunico
