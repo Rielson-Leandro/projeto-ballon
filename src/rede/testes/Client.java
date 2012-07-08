@@ -12,7 +12,7 @@ import rede.newSocket;
 
 public class Client {
 	public static void main(String[] args) throws IOException {
-		Socket socket = new Socket(3000,InetAddress.getByName("172.20.4.99"));
+//		Socket socket = new Socket(3000,InetAddress.getByName("172.20.4.99"));
 
 		FileOutputStream stream = new FileOutputStream("rac2011.iso");
 		Socket2 socket2 = new Socket2(3000, InetAddress.getByName("172.20.4.99"), stream);

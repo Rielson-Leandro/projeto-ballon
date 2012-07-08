@@ -20,9 +20,7 @@ import rede.Pacote;
 import rede.gui.Velocidade;
 
 
-public class miniSocket{
-	Velocidade velocidade2 = new Velocidade();
-	
+public class miniSocket{	
 	//Socket do lado client
 	private int server_port; //Usado tambem do lado server;
 	private InetAddress server_adress;
@@ -51,7 +49,8 @@ public class miniSocket{
 
 	AtomicLong temp_SampleRTT = new AtomicLong(0);
 	AtomicLong last_send = new AtomicLong(0); //valor do ultimo byte que se tem certeza que foi recebido pelo cliente
-
+	AtomicLong last_receiverd = new AtomicLong(0);
+	
 	private long min_timeout = 200;
 	private long EstimatedRTT = 1000;
 	private long DevRTT = 20;
@@ -137,18 +136,6 @@ public class miniSocket{
 
 	//usado por quem vai receber o arquivo
 	public miniSocket(int porta_servidor, InetAddress endereco_servidor,FileOutputStream arquivo_receber) throws IOException {
-		//chama um gui para ver velocidade de transferencia
-		EventQueue.invokeLater(new Runnable() {
-			public void run() {
-				try {
-					Velocidade frame = new Velocidade();
-					frame.setVisible(true);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		});
-		
 		this.arquivo_receber = arquivo_receber;
 		real_socket = new DatagramSocket();
 		this.server_port = porta_servidor;
@@ -164,7 +151,6 @@ public class miniSocket{
 		}
 
 		new Thread(new Receiver()).start();
-		new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
 	}
 
 	//usado por quem vai enviar o arquivo
@@ -181,7 +167,7 @@ public class miniSocket{
 //	}
 
 	//classes internas
-	class Sender extends Thread{
+	class Sender implements Runnable{
 
 		@Override
 		public void run() {
@@ -260,7 +246,7 @@ public class miniSocket{
 		}
 	}
 
-	class Receiver extends Thread{
+	class Receiver implements Runnable{
 
 		@Override
 		public void run() {
@@ -333,12 +319,14 @@ public class miniSocket{
 								arquivo_receber.write(buffer, Pacote.head_payload, dataLength); //escreve para camada de cima
 								rcv_base.incrementAndGet();//incrementa a base da janela
 								velocidade.getAndAdd(dataLength);
-
+								last_receiverd.getAndAdd(dataLength);
+								
 								//tenta pegar mais pacotes que possa estar no buffer de recepção
 								while(rec_packet_buffer.get(rcv_base.get())!=null){
 									byte[] dados = rec_packet_buffer.get(rcv_base.get());
 									dataLength = OperacoesBinarias.extrairComprimentoDados(dados);
 									velocidade.getAndAdd(dataLength);
+									last_receiverd.getAndAdd(dataLength);
 									rcv_base.incrementAndGet(); //incrementa a base de recepção para o proximo pacote
 									arquivo_receber.write(dados, Pacote.head_payload,dataLength);
 								}
@@ -378,59 +366,44 @@ public class miniSocket{
 				}
 
 
-				if(!send_packet_buffer.isEmpty()){
-					if((System.currentTimeMillis()-send_packet_buffer.get(0).send_time)>min_timeout){
+				synchronized (sinc_send_buffer) {
+					if(!send_packet_buffer.isEmpty()){
+						if(System.currentTimeMillis()-send_packet_buffer.get(0).send_time>(min_timeout/2)){
 
-						if(!send_packet_buffer.get(0).isEnviado()){
+							if(!send_packet_buffer.get(0).isEnviado()){
 
-							if(timeouts%3==0){
-								ssthresh.set((cwin.get()/2)+10); // limiar de envio e setado pela metade
-								cwin.set(cwin.get()/2); //janela de congestionamento e setada para 1MSS
-								quantos_zerou.set(0);
-								restam_prox_cwin.set(1);
-							}
-							timeouts++;
+								if(timeouts%3==0){
+									ssthresh.set((cwin.get()/2)+10); // limiar de envio e setado pela metade
+									cwin.set(cwin.get()/2); //janela de congestionamento e setada para 1MSS
+									quantos_zerou.set(0);
+									restam_prox_cwin.set(1);
+								}
+								timeouts++;
 
-							synchronized (sinc_send_socket) {
-								try {
-									int indice = 0;
-									while(indice<send_packet_buffer.size() && !send_packet_buffer.isEmpty() && !send_packet_buffer.get(indice).isEnviado()){
-										real_socket.send(send_packet_buffer.get(indice).setSend_time_and_getme(System.currentTimeMillis()).pkt);
-										indice++;
+								synchronized (sinc_send_socket) {
+									try {
+										int indice = 0;
+										while(indice<send_packet_buffer.size() && !send_packet_buffer.isEmpty() && !send_packet_buffer.get(indice).isEnviado()){
+											real_socket.send(send_packet_buffer.get(indice).setSend_time_and_getme(System.currentTimeMillis()).pkt);
+											indice++;
+										}
+									} catch (IOException e) {
+										System.out.println("Problema com o socket de envio");
+										System.out.println("Fechando conexão");
+										close.set(true);
+										continua = false;
 									}
-								} catch (IOException e) {
-									System.out.println("Problema com o socket de envio");
-									System.out.println("Fechando conexão");
-									close.set(true);
-									continua = false;
 								}
 							}
 						}
-
+					}else{
+						continua=false;
 					}
-				}else{
-					continua=false;
 				}
 			}
 
 			timer_run.set(false);
 //			System.out.println("Encerrado temporizado...");
-		}
-	}
-
-	private class Bandwidth extends TimerTask{
-
-		double repVelo = 0;
-
-		@Override
-		public void run() {
-			repVelo = (repVelo * 0.825) + ((velocidade.getAndSet(0) / 1024)*0.175);
-
-			Velocidade.setText((int) repVelo + " Kb/s");
-
-			if(close.get()){
-				this.cancel();
-			}
 		}
 	}
 }

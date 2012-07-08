@@ -22,7 +22,7 @@ import rede.gui.Velocidade;
 
 public class Socket2{
 	Velocidade velocidade2 = new Velocidade();
-	
+
 	//Socket do lado client
 	private int server_port; //Usado tambem do lado server;
 	private InetAddress server_adress;
@@ -147,7 +147,7 @@ public class Socket2{
 				}
 			}
 		});
-		
+
 		this.arquivo_receber = arquivo_receber;
 		real_socket = new DatagramSocket();
 		this.server_port = porta_servidor;
@@ -378,40 +378,41 @@ public class Socket2{
 					System.out.println("Erro no timeout");
 				}
 
+				synchronized (sinc_send_buffer) {
+					if(!send_packet_buffer.isEmpty()){
+						if(System.currentTimeMillis()-send_packet_buffer.get(0).send_time>(min_timeout/2)){
 
-				if(!send_packet_buffer.isEmpty()){
-					if(System.currentTimeMillis()-send_packet_buffer.get(0).send_time>(min_timeout/2)){
+							if(!send_packet_buffer.get(0).isEnviado()){
 
-						if(!send_packet_buffer.get(0).isEnviado()){
+								if(timeouts%3==0){
+									ssthresh.set((cwin.get()/2)+10); // limiar de envio e setado pela metade
+									cwin.set(cwin.get()/2); //janela de congestionamento e setada para 1MSS
+									quantos_zerou.set(0);
+									restam_prox_cwin.set(1);
+								}
+								timeouts++;
 
-							if(timeouts%3==0){
-								ssthresh.set((cwin.get()/2)+10); // limiar de envio e setado pela metade
-								cwin.set(cwin.get()/2); //janela de congestionamento e setada para 1MSS
-								quantos_zerou.set(0);
-								restam_prox_cwin.set(1);
-							}
-							timeouts++;
-
-							synchronized (sinc_send_socket) {
-								try {
-									int indice = 0;
-									while(indice<send_packet_buffer.size() && !send_packet_buffer.isEmpty() && !send_packet_buffer.get(indice).isEnviado()){
-										real_socket.send(send_packet_buffer.get(indice).setSend_time_and_getme(System.currentTimeMillis()).pkt);
-										indice++;
+								synchronized (sinc_send_socket) {
+									try {
+										int indice = 0;
+										while(indice<send_packet_buffer.size() && !send_packet_buffer.isEmpty() && !send_packet_buffer.get(indice).isEnviado()){
+											real_socket.send(send_packet_buffer.get(indice).setSend_time_and_getme(System.currentTimeMillis()).pkt);
+											indice++;
+										}
+									} catch (IOException e) {
+										System.out.println("Problema com o socket de envio");
+										System.out.println("Fechando conexão");
+										close.set(true);
+										continua = false;
 									}
-								} catch (IOException e) {
-									System.out.println("Problema com o socket de envio");
-									System.out.println("Fechando conexão");
-									close.set(true);
-									continua = false;
 								}
 							}
 						}
-
+					}else{
+						continua=false;
 					}
-				}else{
-					continua=false;
 				}
+
 			}
 
 			timer_run.set(false);
