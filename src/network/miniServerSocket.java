@@ -5,8 +5,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import rede.OperacoesBinarias;
-import rede.Pacote;
+import network.util.OperacoesBinarias;
+import network.util.Pacote;
 
 public class miniServerSocket extends miniSocket{
 	boolean close;

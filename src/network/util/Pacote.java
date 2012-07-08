@@ -1,4 +1,4 @@
-package rede;
+package network.util;
 import java.io.Serializable;
 import java.net.DatagramPacket;
 

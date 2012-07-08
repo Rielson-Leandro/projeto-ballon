@@ -8,11 +8,8 @@ import java.net.SocketException;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import javax.swing.JFrame;
-
 import network.exception.ArquivoNaoEncontradoException;
 import network.exception.ErroConexaoException;
-import rede.gui.Velocidade;
 
 public class EnviarArquivo {
 

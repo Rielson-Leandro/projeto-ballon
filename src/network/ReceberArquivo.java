@@ -7,10 +7,6 @@ import java.net.InetAddress;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import javax.swing.JFrame;
-
-import rede.gui.Velocidade;
-
 public class ReceberArquivo {
 	File arquivo_para_enviar;
 	FileOutputStream stream_arquivo_receber;
