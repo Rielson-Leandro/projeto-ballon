@@ -1,8 +1,6 @@
 package newRede;
 
 import java.awt.EventQueue;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -429,7 +427,7 @@ public class Socket2{
 		public void run() {
 			repVelo = (repVelo * 0.825) + ((velocidade.getAndSet(0) / 1024)*0.175);
 
-			velocidade2.setText((int) repVelo + " Kb/s");
+			Velocidade.setText((int) repVelo + " Kb/s");
 
 			if(close.get()){
 				this.cancel();
