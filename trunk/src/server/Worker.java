@@ -19,16 +19,18 @@ public class Worker extends Thread{
 
 	private boolean isConnected;
 	private Socket socketClient;
+	private ServerSocket loginSocket;
 	private Server servidor;
 	private BufferedReader fromClient;
 	private DataOutputStream toCLient;
 	private Usuario user;
 
 
-	public Worker(Socket skt, Server srv){
+	public Worker(Socket skt, Server srv, ServerSocket loginSkt){
 		super();
 		System.out.println("Inicializando worker para " + skt.getInetAddress().getHostAddress() + " ... ");
-
+		
+		this.loginSocket = loginSkt;
 		this.isConnected = true;
 		this.socketClient = skt;
 		this.servidor = srv;
@@ -82,7 +84,7 @@ public class Worker extends Thread{
 	private void gerenciamentoUsuarios(String[] msg){
 		if(msg[0].equals("LOGINRQST")){
 
-			Usuario rqstUser = this.servidor.executeLogin(msg[1], msg[2]);
+			Usuario rqstUser = this.servidor.executeLogin2(msg[1], msg[2]);
 
 			if( rqstUser != null ){
 				System.out.println(msg[1] + " logado com SUCESSO!");
@@ -92,16 +94,18 @@ public class Worker extends Thread{
 				System.out.println(this.user.getListaArquivos().listagem());
 				try{
 
-					this.toCLient.writeBytes("LOGINRQST#successful\n");
+					this.toCLient.writeBytes("LOGINRQST#successful#" + this.loginSocket.getLocalPort() + "\n");
 
 					System.out.println("Preparando pra enviar dados do usuario.");
 					
-					ObjectOutputStream out = new ObjectOutputStream(this.socketClient.getOutputStream());
+					Socket lgnSkt = this.loginSocket.accept();
+					DataOutputStream loginWriter = new DataOutputStream(lgnSkt.getOutputStream());
+					/*ObjectOutputStream out = new ObjectOutputStream(this.socketClient.getOutputStream());
 					
 					out.writeUnshared(this.user);
-					out.flush();
+					out.flush();*/
 					
-					/*File temp = new File(this.servidor.getUsersDir() + msg[1] + ".login");
+					File temp = new File(this.servidor.getUsersDir() + msg[1] + ".login");
 					System.out.print("Carregando usuario ... ");
 					FileInputStream fis = new FileInputStream(temp);
 					int lidos = 0;
@@ -110,14 +114,16 @@ public class Worker extends Thread{
 						lidos = fis.read(buffer);
 						System.out.print("Dados user lidos: " + lidos + " ... ");
 						if(lidos != -1){
-							this.toCLient.write(buffer, 0, lidos);
+							loginWriter.write(buffer, 0, lidos);
 							System.out.print("Escritos ... ");
-							this.toCLient.flush();
+							loginWriter.flush();
+							loginWriter.close();
 							System.out.println("Enviados!");
 						}
 					}
 					fis.close();
-					System.out.println("Transferencia de usuario finalizada.");*/
+					this.loginSocket.close();
+					System.out.println("Transferencia de usuario finalizada.");
 
 
 				}catch(IOException e){
@@ -137,7 +143,7 @@ public class Worker extends Thread{
 
 		if(msg[0].equals("SIGNUP")){
 
-			this.servidor.executeSignUp(msg[1], msg[2]);
+			this.servidor.executeSignUp2(msg[1], msg[2]);
 
 			try{ 
 				this.toCLient.writeBytes("SIGNUP#successful\n");
