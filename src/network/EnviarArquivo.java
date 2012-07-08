@@ -83,6 +83,9 @@ public class EnviarArquivo {
 	
 	public double getVelocidade(){
 		return repVelo;
-		
+	}
+	
+	public long get_ultimo_byte_enviado(){
+		return socket.last_send.get();
 	}
 }
