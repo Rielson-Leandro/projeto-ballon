@@ -182,10 +182,12 @@ public class Client{
 							if(resposta[1].equals("successful")){
 								this.connected = true;
 								System.out.println("Login ACEITO!");
+								
+								Socket loginSkt = new Socket(this.socketToServer.getInetAddress().getHostAddress(), Integer.parseInt(resposta[2]));
 
 								System.out.println("Carregando informacoes do usuario ... ");
 								try{
-									/*File temp = new File(this.mainDir + login + ".login");
+									File temp = new File(this.mainDir + login + ".login");
 									if(temp.exists()){
 										temp.delete();
 									}else{
@@ -193,7 +195,7 @@ public class Client{
 									}
 
 									FileOutputStream arquivoOut = new FileOutputStream(temp);
-									DataInputStream loginIn = new DataInputStream(this.socketToServer.getInputStream());
+									DataInputStream loginIn = new DataInputStream(loginSkt.getInputStream());
 									int bytesLidos = 0;
 									byte[] buffer = new byte[262144];
 									bytesLidos = loginIn.read(buffer);
@@ -205,8 +207,8 @@ public class Client{
 									arquivoOut.close();
 									System.out.println("Leitura das informacoes do usuario finalizada.");
 
-									FileInputStream arquivoIn = new FileInputStream(temp);*/
-									ObjectInputStream userReader = new ObjectInputStream(this.socketToServer.getInputStream());
+									FileInputStream arquivoIn = new FileInputStream(temp);
+									ObjectInputStream userReader = new ObjectInputStream(arquivoIn);
 
 									try{
 										this.usuario = (Usuario) userReader.readUnshared();
