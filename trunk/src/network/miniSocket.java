@@ -1,6 +1,5 @@
 package network;
 
-import java.awt.EventQueue;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -9,16 +8,12 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import rede.OperacoesBinarias;
-import rede.Pacote;
-import rede.gui.Velocidade;
-
+import network.util.OperacoesBinarias;
+import network.util.Pacote;
 
 public class miniSocket{	
 	//Socket do lado client

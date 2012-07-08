@@ -12,7 +12,7 @@ import java.net.UnknownHostException;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import rede.Pacote;
+import network.util.Pacote;
 
 public class UDPTask {
 

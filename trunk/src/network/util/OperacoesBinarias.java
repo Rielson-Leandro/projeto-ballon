@@ -1,4 +1,4 @@
-package rede;
+package network.util;
 
 public class OperacoesBinarias {
 
