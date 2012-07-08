@@ -196,10 +196,123 @@ public class Server{
 		}
 	}
 
+	public synchronized Usuario executeLogin2(String login, String senha){
+		Usuario user = null;
+
+		File temp = new File(this.usersDir + login + ".login");
+
+		if(temp.exists()){
+
+			try{
+				FileInputStream fis = new FileInputStream(temp);
+
+				try{
+					ObjectInputStream in = new ObjectInputStream(fis);
+
+					try{
+
+						user = (Usuario) in.readObject();
+
+						if(!user.getPw().equals(senha)){
+							user = null;
+						}
+
+						in.close();
+						fis.close();
+					}catch(IOException e2){
+						System.out.println("FALHA ao escrever o cadastro usuario.");
+					} catch (ClassNotFoundException e) {
+						System.out.println("FALHA de classe nao encontrada.");
+					}
+				}catch(IOException e1){
+					System.out.println("FALHA ao estabelcer conexao para OBJETOS para criar usuario.");
+				}
+			}catch(IOException e){
+				System.out.println("FALHA ao estabelcer conexao para cadastrar o  usuario.");
+			}
+		}else{
+			//throw exception de login NAO existente
+		}
+
+		return user;
+	}
+
 	public synchronized void executeSignUp(String login, String senha){
 		Usuario novoUser = new Usuario(login, senha);
 		this.userL.adicionarUsuario(novoUser);
 		this.saveUserList();
+	}
+
+	public synchronized void executeSignUp2(String login, String senha){
+		//cria um arquivo .login na pasta de usuarios
+
+		Usuario novoUser = new Usuario(login, senha);
+
+		File temp = new File(this.usersDir + login + ".login");
+
+		try{
+			if(!temp.exists()){
+
+				temp.createNewFile();
+
+				try{
+					FileOutputStream fos = new FileOutputStream(temp);
+
+					try{
+						ObjectOutputStream out = new ObjectOutputStream(fos);
+
+						try{
+
+							out.writeObject(novoUser);
+							out.close();
+							fos.close();
+						}catch(IOException e2){
+							System.out.println("FALHA ao escrever o cadastro usuario.");
+						}
+					}catch(IOException e1){
+						System.out.println("FALHA ao estabelcer conexao para OBJETOS para criar usuario.");
+					}
+				}catch(IOException e){
+					System.out.println("FALHA ao estabelcer conexao para cadastrar o  usuario.");
+				}
+			}else{
+				//throw exception de login existente
+			}
+		}catch (IOException e) {
+			System.out.println("FALHA ao criar arquivo de cadastro.");
+		}
+
+	}
+
+	public void saveUser(Usuario user){
+
+		File temp = new File(this.usersDir + user.getLogin() + ".login");
+
+		if(temp.exists()){
+
+			try{
+				FileOutputStream fos = new FileOutputStream(temp);
+
+				try{
+					ObjectOutputStream out = new ObjectOutputStream(fos);
+
+					try{
+
+						out.writeObject(user);
+						out.close();
+						fos.close();
+					}catch(IOException e2){
+						System.out.println("FALHA ao escrever o cadastro usuario.");
+					}
+				}catch(IOException e1){
+					System.out.println("FALHA ao estabelcer conexao para OBJETOS para criar usuario.");
+				}
+			}catch(IOException e){
+				System.out.println("FALHA ao estabelcer conexao para cadastrar o  usuario.");
+			}
+		}else{
+			//throw exception de login NAO existente
+		}
 	}
 
 	public String getFilesDir(){
@@ -208,6 +321,10 @@ public class Server{
 
 	public String getRemainingDir(){
 		return this.remainingDir;
+	}
+
+	public String getUsersDir(){
+		return this.usersDir;
 	}
 
 }

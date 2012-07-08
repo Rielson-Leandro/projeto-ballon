@@ -1,6 +1,7 @@
 package client;
 
 import java.io.BufferedReader;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -184,18 +185,39 @@ public class Client{
 
 								System.out.println("Carregando informacoes do usuario ... ");
 								try{
-									ObjectInputStream userReader = new ObjectInputStream(this.socketToServer.getInputStream());
+									File temp = new File(this.mainDir + login + ".login");
+									if(temp.exists()){
+										temp.delete();
+									}else{
+										temp.createNewFile();
+									}
+
+									FileOutputStream arquivoOut = new FileOutputStream(temp);
+									DataInputStream loginIn = new DataInputStream(this.socketToServer.getInputStream());
+									int bytesLidos = 0;
+									byte[] buffer = new byte[262144];
+									bytesLidos = loginIn.read(buffer);
+									System.out.print("bytes lidos: " + bytesLidos + " ... ");
+									arquivoOut.write(buffer, 0, bytesLidos);
+									System.out.print("Escritos ... ");
+									arquivoOut.flush();
+									System.out.println("Enviados!");
+									arquivoOut.close();
+									System.out.println("Leitura das informacoes do usuario finalizada.");
+
+									FileInputStream arquivoIn = new FileInputStream(temp);
+									ObjectInputStream userReader = new ObjectInputStream(arquivoIn);
 
 									try{
 										this.usuario = (Usuario) userReader.readObject();
 										System.out.println("Informacoes do usuario carregadas.");
-										
+
 										this.usuario.getListaArquivos().clearAllStats();
 										System.out.println(this.usuario.getListaArquivos().listagem());
 									}catch(ClassNotFoundException e){
 										System.out.println("Falha de classe nao encontrada!");
 									}
-									
+
 									this.sync = new Sincronizador(this, this.socketToServer);
 									this.sync.start();
 								}catch (IOException e) {
@@ -255,9 +277,9 @@ public class Client{
 
 	public void adicionarArquivo(String caminho){
 		//o parametro caminho indica todo o path ate o arquivo incluindo o nome do arquivo, juntamente com a extensao.
-		
+
 		String[] temp = caminho.replace(File.separatorChar, '#').split("#"); 
-		
+
 		//transfere o arquivo para a pasta de compartilhamento
 		Arquivo file = new Arquivo(this.filesDir + temp[temp.length - 1], this.usuario.getLogin());
 		TransferidorArquivo transfer = new TransferidorArquivo(file, caminho);
@@ -267,6 +289,7 @@ public class Client{
 	public void disconnect(){
 		System.out.print("Desconectando ... ");
 		this.connected = false;
+		this.sendMensagem("LOGOUT#" + this.usuario.getLogin());
 		try{
 			this.outToServer.close();
 			this.inFromServer.close();
@@ -343,7 +366,7 @@ class TransferidorArquivo extends Thread{
 		this.original.setReadyStatus(true);
 		this.original.setSyncStatus(false);
 		System.out.println(this.original.getSyncStatus());
-		
+
 		System.out.println("Arquivo " + this.destino.getPath() + " adicionado.");
 
 	}

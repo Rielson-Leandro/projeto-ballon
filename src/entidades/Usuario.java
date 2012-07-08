@@ -8,7 +8,7 @@ public class Usuario implements Serializable{
 	private String login;
 	private String pw;
 	private boolean conectado;
-	private ListaArquivos filesList;;
+	private ListaArquivos filesList;
 
 	public Usuario(String novoLogin, String novoPw){
 		this.login = novoLogin;

@@ -1,8 +1,10 @@
 package server;
 
 import java.io.BufferedReader;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.ObjectOutputStream;
@@ -57,52 +59,67 @@ public class Worker extends Thread{
 		System.out.println("Interpretando mensagem: " + mensagem);
 
 		switch(msg[0]){
-			case "LOGINRQST":
-			case "SIGNUP":
-				System.out.println("Mensagem encaminhada para o gerenciador de usuarios...");
-				this.gerenciamentoUsuarios(msg);
-				break;
-			case "GETREADY":
-			case "SENDFILE":
-				System.out.println("Mensagem encaminhada para o gerenciador de transferencias...");
-				this.gerenciamentoTransferencias(msg);
-				break;
-			case "REMOVEFILE":
-				this.gerenciamentoArquivos(msg);
-				break;
-			case "CONCHEK":
-				System.out.println("Mensagem encaminhada para o gerenciador de conexao...");
-				this.gerenciamentoConexao(msg);
-				break;
-			default:
-				System.out.println("Mensagem invalida!");
+		case "LOGINRQST":
+		case "SIGNUP":
+		case "LOGOUT":
+			System.out.println("Mensagem encaminhada para o gerenciador de usuarios...");
+			this.gerenciamentoUsuarios(msg);
+			break;
+		case "GETREADY":
+		case "SENDFILE":
+			System.out.println("Mensagem encaminhada para o gerenciador de transferencias...");
+			this.gerenciamentoTransferencias(msg);
+			break;
+		case "REMOVEFILE":
+			this.gerenciamentoArquivos(msg);
+			break;
+		case "CONCHEK":
+			System.out.println("Mensagem encaminhada para o gerenciador de conexao...");
+			this.gerenciamentoConexao(msg);
+			break;
+		default:
+			System.out.println("Mensagem invalida!");
 		}
 
 	}
 
 	private void gerenciamentoUsuarios(String[] msg){
 		if(msg[0].equals("LOGINRQST")){
-			
-			Usuario rqstUser = this.servidor.executeLogin(msg[1], msg[2]);
-			
+
+			Usuario rqstUser = this.servidor.executeLogin2(msg[1], msg[2]);
+
 			if( rqstUser != null ){
 				System.out.println(msg[1] + " logado com SUCESSO!");
 
 				this.user = rqstUser;
-				
+
 				System.out.println(this.user.getListaArquivos().listagem());
 				try{
-					
+
 					this.toCLient.writeBytes("LOGINRQST#successful\n");
 
-					ObjectOutputStream out = new ObjectOutputStream(this.socketClient.getOutputStream());
+					System.out.println("Preparando pra enviar dados do usuario.");
+					File temp = new File(this.servidor.getUsersDir() + msg[1] + ".login");
+					System.out.print("Carregando usuario ... ");
+					FileInputStream fis = new FileInputStream(temp);
+					int lidos = 0;
+					byte[] buffer = new byte[262144];
+					while(lidos != -1){
+						lidos = fis.read(buffer);
+						System.out.print("Dados user lidos: " + lidos + " ... ");
+						if(lidos != -1){
+							this.toCLient.write(buffer, 0, lidos);
+							System.out.print("Escritos ... ");
+							this.toCLient.flush();
+							System.out.println("Enviados!");
+						}
+					}
+					fis.close();
+					System.out.println("Transferencia de usuario finalizada.");
 					
-					out.writeObject(rqstUser);
-					
-					out.flush();
 
 				}catch(IOException e){
-					System.out.println("Falha ao enviar a mensagem de login bem sucedido para o cliente.");
+					System.out.println("FALHA ao enviar a mensagem de login bem sucedido para o cliente.");
 				}
 
 			}else{
@@ -117,14 +134,20 @@ public class Worker extends Thread{
 		}
 
 		if(msg[0].equals("SIGNUP")){
-			
-			this.servidor.executeSignUp(msg[1], msg[2]);
+
+			this.servidor.executeSignUp2(msg[1], msg[2]);
 
 			try{ 
 				this.toCLient.writeBytes("SIGNUP#successful\n");
 			}catch(IOException e){
 				System.out.println("Falha ao enviar a msg de cadastro bem sucedido para o cliente.");
 			}
+		}
+		
+		if(msg[0].equals("LOGOUT")){
+
+			this.isConnected = false;
+			this.servidor.saveUser(this.user);
 		}
 	}
 
@@ -159,7 +182,7 @@ public class Worker extends Thread{
 						Socket transferSocket = socketFiles.accept();
 
 						if( this.socketClient.getInetAddress().getHostAddress().equals(transferSocket.getInetAddress().getHostAddress()) ){
-							
+
 							System.out.println("Conexao de transferencia estabelecida para " + transferSocket.getRemoteSocketAddress().toString());
 
 							userCorreto = true;
@@ -195,7 +218,7 @@ public class Worker extends Thread{
 						userCorreto = true;
 
 						Arquivo arquivoParaSerEnviado = this.user.getListaArquivos().getByHash(msg[2]);
-						
+
 						System.out.println("\nIniciando transferencia do arquivo:\nHash: " + arquivoParaSerEnviado.getHash() + "\nNome: " + arquivoParaSerEnviado.getNomeOriginal() + "\nCaminho: " + arquivoParaSerEnviado.getCaminho() + "\nUploader: " + arquivoParaSerEnviado.getLoginUploader() + "\n");
 
 						Transfer transferidor = new Transfer();
