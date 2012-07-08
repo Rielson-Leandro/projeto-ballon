@@ -67,7 +67,7 @@ public class EnviarArquivo {
 				repVelo = (repVelo * 0.825) + ((instant_velo / 1024)*0.175);
 			}
 			
-			porcentagem = socket.last_send.get()/tamanho_arquivo;
+			porcentagem = (socket.last_send.get()/tamanho_arquivo)*100;
 			
 			tempo_restante = (long)((tempo_restante*0.125) + 0.8175*((tamanho_arquivo-socket.last_send.get())/repVelo));
 		}
