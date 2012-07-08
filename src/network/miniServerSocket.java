@@ -1,8 +1,8 @@
 package network;
 
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import network.util.OperacoesBinarias;
@@ -14,7 +14,7 @@ public class miniServerSocket extends miniSocket{
 	DatagramSocket socket;
 	
 	
-	public miniServerSocket(int listerningPort,FileInputStream arquivo_enviar) throws IOException,FileNotFoundException{
+	public miniServerSocket(int listerningPort,RandomAccessFile arquivo_enviar) throws IOException,FileNotFoundException{
 		super(listerningPort);
 		super.arquivo_enviar = arquivo_enviar;
 	}

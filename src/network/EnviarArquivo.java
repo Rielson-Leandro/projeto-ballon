@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.net.SocketException;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -14,26 +15,31 @@ import network.exception.ErroConexaoException;
 public class EnviarArquivo {
 
 	File arquivo_para_enviar;
-	FileInputStream stream_arquivo_enviar;
+	RandomAccessFile stream_arquivo_enviar;
 	miniSocket socket;
 	miniServerSocket miniServerSocket;
 	long tamanho_arquivo;
 	double porcentagem;
 	double repVelo;
 	long tempo_restante;
-
-	public EnviarArquivo(String caminho_arquivo,int porta_envio) throws ArquivoNaoEncontradoException, ErroConexaoException{
-		File arquivo = new File(caminho_arquivo);
+	double incremento = 0;
+	
+	public EnviarArquivo(String caminho_arquivo,int porta_envio,long seek) throws ArquivoNaoEncontradoException, ErroConexaoException{
+		this.arquivo_para_enviar = new File(caminho_arquivo);
 		try{
-			if(arquivo.isFile()){
-				this.tamanho_arquivo = arquivo.length();
-				stream_arquivo_enviar = new FileInputStream(arquivo);
+			if(this.arquivo_para_enviar.isFile()){
+				this.tamanho_arquivo = this.arquivo_para_enviar.length();
+				if(seek>0){
+					this.incremento = seek/this.tamanho_arquivo;
+				}
+				stream_arquivo_enviar = new RandomAccessFile(this.arquivo_para_enviar, "r");
+				stream_arquivo_enviar.seek(seek);
 				miniServerSocket = new miniServerSocket(porta_envio, stream_arquivo_enviar);
 				socket = miniServerSocket.accept();
 				new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
+			}else{
+				throw new ArquivoNaoEncontradoException();
 			}
-
-
 		}catch(SocketException e){
 			throw new ErroConexaoException();	
 		} catch (FileNotFoundException e) {
@@ -60,6 +66,7 @@ public class EnviarArquivo {
 				contador_zeros = 0;
 				repVelo = (repVelo * 0.825) + ((instant_velo / 1024)*0.175);
 			}
+			
 			porcentagem = socket.last_send.get()/tamanho_arquivo;
 			
 			tempo_restante = (long)((tempo_restante*0.125) + 0.8175*((tamanho_arquivo-socket.last_send.get())/repVelo));
@@ -67,7 +74,7 @@ public class EnviarArquivo {
 	}
 
 	public double getPorcentagem(){
-		return porcentagem;
+		return porcentagem+incremento;
 	}
 	
 	public long gettTempoRestante(){

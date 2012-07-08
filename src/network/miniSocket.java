@@ -3,6 +3,7 @@ package network;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -45,7 +46,7 @@ public class miniSocket{
 	AtomicLong temp_SampleRTT = new AtomicLong(0);
 	AtomicLong last_send = new AtomicLong(0); //valor do ultimo byte que se tem certeza que foi recebido pelo cliente
 	AtomicLong last_receiverd = new AtomicLong(0);
-	
+
 	private long min_timeout = 200;
 	private long EstimatedRTT = 1000;
 	private long DevRTT = 20;
@@ -61,7 +62,7 @@ public class miniSocket{
 	AtomicBoolean close = new AtomicBoolean(false); //booleano com condição de parada das threads
 	AtomicBoolean connect = new AtomicBoolean(false);
 
-//	AtomicLong velocidade = new AtomicLong(0);
+	//	AtomicLong velocidade = new AtomicLong(0);
 
 	byte[] SYN_BYTE = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0};
 	byte[] SYN_ACK_BYTE = {0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0};
@@ -81,7 +82,7 @@ public class miniSocket{
 	HashMap<Integer, byte[]> rec_packet_buffer = new HashMap<Integer,byte[]>(); //chave vai ser numero de sequencia
 	//Buffers internos para Pacotes
 
-	FileInputStream arquivo_enviar;
+	RandomAccessFile arquivo_enviar;
 	FileOutputStream arquivo_receber;
 
 	public void close(){
@@ -153,13 +154,13 @@ public class miniSocket{
 		real_socket = new DatagramSocket(port);
 	}
 
-//	public void setCliente(int portaCliente, InetAddress enderecoCliente,FileInputStream arquivo_enviar){
-//		this.arquivo_enviar = arquivo_enviar;
-//		this.client_adress = enderecoCliente;
-//		this.client_port = portaCliente;
-//		new Thread(new Receiver()).start();
-//		new Thread(new Sender()).start();
-//	}
+	//	public void setCliente(int portaCliente, InetAddress enderecoCliente,FileInputStream arquivo_enviar){
+	//		this.arquivo_enviar = arquivo_enviar;
+	//		this.client_adress = enderecoCliente;
+	//		this.client_port = portaCliente;
+	//		new Thread(new Receiver()).start();
+	//		new Thread(new Sender()).start();
+	//	}
 
 	//classes internas
 	class Sender implements Runnable{
@@ -208,18 +209,17 @@ public class miniSocket{
 								close.set(true);
 							} //envia pacote
 						}
-					}
-				}else{
-					try {
-						if(arquivo_enviar.available()==0){
+					}else{
+						try {
 							DatagramPacket packet = new DatagramPacket(OperacoesBinarias.inserirCabecalho(new byte[Pacote.head_payload], Pacote.head_payload, 0, false, true, false, false, 0, 0), Pacote.head_payload, client_adress, client_port);
 							synchronized (sinc_send_socket) {
 								real_socket.send(packet);
 							}
+						} catch (IOException e) {
+							e.printStackTrace();
 						}
-					} catch (IOException e) {
-						e.printStackTrace();
 					}
+				}else{
 
 					if(!timer_run.get()){//se nenhum temporizador esta ativo ativa um
 						timer_run.set(true);
@@ -313,14 +313,14 @@ public class miniSocket{
 							if(seqNum==rcv_base.get()){ //se temos o proximo pacote esperado
 								arquivo_receber.write(buffer, Pacote.head_payload, dataLength); //escreve para camada de cima
 								rcv_base.incrementAndGet();//incrementa a base da janela
-//								velocidade.getAndAdd(dataLength);
+								//								velocidade.getAndAdd(dataLength);
 								last_receiverd.getAndAdd(dataLength);
-								
+
 								//tenta pegar mais pacotes que possa estar no buffer de recepção
 								while(rec_packet_buffer.get(rcv_base.get())!=null){
 									byte[] dados = rec_packet_buffer.get(rcv_base.get());
 									dataLength = OperacoesBinarias.extrairComprimentoDados(dados);
-//									velocidade.getAndAdd(dataLength);
+									//									velocidade.getAndAdd(dataLength);
 									last_receiverd.getAndAdd(dataLength);
 									rcv_base.incrementAndGet(); //incrementa a base de recepção para o proximo pacote
 									arquivo_receber.write(dados, Pacote.head_payload,dataLength);
@@ -398,7 +398,7 @@ public class miniSocket{
 			}
 
 			timer_run.set(false);
-//			System.out.println("Encerrado temporizado...");
+			//			System.out.println("Encerrado temporizado...");
 		}
 	}
 }
