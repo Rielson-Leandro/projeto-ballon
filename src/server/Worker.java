@@ -92,6 +92,7 @@ public class Worker extends Thread{
 				
 				System.out.println(this.user.getListaArquivos().listagem());
 				try{
+					
 					this.toCLient.writeBytes("LOGINRQST#successful\n");
 
 					ObjectOutputStream out = new ObjectOutputStream(this.socketClient.getOutputStream());

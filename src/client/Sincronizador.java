@@ -57,38 +57,47 @@ public class Sincronizador extends Thread{
 		for (int i = 0; i < listaDir.length; i++) {
 
 			nome = listaDir[i].getPath().replace(File.separatorChar, '#').split("#");
-			System.out.println("Comparando: " + nome[nome.length - 1]);
 			temp = this.lista.getByNomeOriginal(nome[nome.length - 1]);
+
 			if(temp != null){
-				//se ta na lista
+				System.out.println(temp.isSyncing());
+				if(!temp.isSyncing()){
+					//se ta na lista e nao esta sincronizando  
+					
+					//verifica se foi modificado
+					if(listaDir[i].lastModified() != temp.getUltimaModificacao() && !temp.isSyncing()){
+						System.out.println("ARQUIVO NO DIR E NA LISTA, LAST MOD CHANGE");
+						
+						temp.setSyncStatus(false);
+						temp.setSyncing(true);
 
-				//verifica se foi modificado
-				if(listaDir[i].lastModified() != temp.getUltimaModificacao() && !temp.isSyncing()){
-					temp.setSyncStatus(false);
-					temp.setSyncing(true);
+						//se foi modificado, entao envia
+						this.enviarArquivo(listaDir[i], temp);
+						temp.setUltimaModificacao(listaDir[i].lastModified());
 
-					//se foi modificado, entao envia
-					this.enviarArquivo(listaDir[i], temp);
-					temp.setUltimaModificacao(listaDir[i].lastModified());
-
-				}else{
-					//se nao foi modificado, confirma a sincronizacao
-					temp.setSyncStatus(true);
+					}else{
+						//se nao foi modificado, confirma a sincronizacao
+						temp.setSyncStatus(true);
+						temp.setSyncing(false);
+					}
 				}
 			}else{
 				//se nao ta na lista
-
+				System.out.println("ARQUIVO NO DIR MAS NAO NA LISTA");
 				//envia
 				Arquivo arquivo = new Arquivo(this.cliente.getFilesDir() + nome[nome.length - 1], this.cliente.getUser().getLogin());
 				if(!arquivo.isSyncing()){
+
 					arquivo.setSyncing(true);
 					arquivo.setSyncStatus(false);
 					this.enviarArquivo(listaDir[i], arquivo);
 					arquivo.setUltimaModificacao(listaDir[i].lastModified());
 					this.cliente.getUser().getListaArquivos().addArquivo(arquivo);
+
 				}
 			}
-
+			
+			temp = null;
 		}
 	}
 
@@ -120,9 +129,10 @@ public class Sincronizador extends Thread{
 			//verifica se esta sincronizado(esta na lista mas nao esta no diretorio
 			if(!listNotSynced.get(i).getSyncStatus() && !listNotSynced.get(i).isSyncing() && this.firstTime){
 				//se nao estiver, solicita arquivo arquivo
+				listNotSynced.get(i).setSyncing(true);
 				this.solicitarArquivo(listNotSynced.get(i).getHash());
 			}
-			
+
 			if(!listNotSynced.get(i).isSyncing() && !this.firstTime){
 				System.out.println("DELETANDO arquivo " + listNotSynced.get(i).getCaminho());
 				File temp = new File(listNotSynced.get(i).getCaminho());
@@ -230,6 +240,8 @@ public class Sincronizador extends Thread{
 
 			//System.out.println("Iniciando varredura em " + this.cliente.getFilesDir());
 
+			this.lista = this.cliente.getUser().getListaArquivos();
+
 			pastaArquivos = new File(this.cliente.getFilesDir());
 
 			//System.out.print("Listando arquivos ... ");
@@ -237,12 +249,11 @@ public class Sincronizador extends Thread{
 
 			//System.out.print("Varrendo ... ");
 			this.lista.setAllNotSynced();
+			System.out.println(this.cliente.getUser().getListaArquivos().listagem());
 			this.compararDiretorioLista();
 			this.compararListaDiretorio();
 			//System.out.println("Varredura finalizada!");
 
-			System.out.println(this.cliente.getUser().getListaArquivos().listagem());
-			
 			if(this.firstTime){
 				this.firstTime = false;
 			}
