@@ -1,5 +1,6 @@
 package newRede;
 
+import java.awt.EventQueue;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
@@ -138,6 +139,17 @@ public class Socket2{
 
 	//usado por quem vai receber o arquivo
 	public Socket2(int porta_servidor, InetAddress endereco_servidor,FileOutputStream arquivo_receber) throws IOException {
+		EventQueue.invokeLater(new Runnable() {
+			public void run() {
+				try {
+					Velocidade frame = new Velocidade();
+					frame.setVisible(true);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		});
+		
 		this.arquivo_receber = arquivo_receber;
 		real_socket = new DatagramSocket();
 		this.server_port = porta_servidor;
