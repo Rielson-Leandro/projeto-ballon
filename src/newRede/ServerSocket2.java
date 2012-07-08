@@ -16,7 +16,7 @@ public class ServerSocket2 extends Socket2{
 	
 	public ServerSocket2(int listerningPort,FileInputStream arquivo_enviar) throws IOException,FileNotFoundException{
 		super(listerningPort);
-		super.real_socket = new DatagramSocket(listerningPort);
+//		super.real_socket = new DatagramSocket(listerningPort);
 		super.arquivo_enviar = arquivo_enviar;
 	}
 

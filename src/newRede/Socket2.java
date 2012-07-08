@@ -18,9 +18,12 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import rede.OperacoesBinarias;
 import rede.Pacote;
+import rede.gui.Velocidade;
 
 
 public class Socket2{
+	Velocidade velocidade2 = new Velocidade();
+	
 	//Socket do lado client
 	private int server_port; //Usado tambem do lado server;
 	private InetAddress server_adress;
@@ -414,7 +417,7 @@ public class Socket2{
 		public void run() {
 			repVelo = (repVelo * 0.825) + ((velocidade.getAndSet(0) / 1024)*0.175);
 
-			System.out.println((int) repVelo + " Kb/s");
+			velocidade2.setText((int) repVelo + " Kb/s");
 
 			if(close.get()){
 				this.cancel();
