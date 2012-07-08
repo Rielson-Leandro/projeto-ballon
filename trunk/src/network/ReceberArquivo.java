@@ -3,12 +3,13 @@ package network;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.net.InetAddress;
 import java.util.Timer;
 import java.util.TimerTask;
 
 public class ReceberArquivo {
-	File arquivo_para_enviar;
+	File arquivo_para_receber;
 	FileOutputStream stream_arquivo_receber;
 	miniSocket socket;
 	long tamanho_arquivo;
@@ -16,8 +17,14 @@ public class ReceberArquivo {
 	double repVelo;
 	long tempo_restante;
 	boolean velocidade_zero = false;
-
-	public ReceberArquivo(String caminho_arquivo, int porta_servidor_arquivo, InetAddress endereco_servidor_sarquivo,long tamanhoArquivo) throws IOException {
+	double incremento = 0;
+	
+	public ReceberArquivo(String caminho_arquivo, int porta_servidor_arquivo, InetAddress endereco_servidor_sarquivo,long tamanhoArquivo, boolean continuacao_arquivo) throws IOException {
+		this.arquivo_para_receber = new File(caminho_arquivo);
+		this.stream_arquivo_receber = new FileOutputStream(arquivo_para_receber, continuacao_arquivo);
+		if(continuacao_arquivo){
+			incremento = this.arquivo_para_receber.length()/tamanhoArquivo;
+		}
 		socket = new miniSocket(porta_servidor_arquivo, endereco_servidor_sarquivo, stream_arquivo_receber);
 		this.tamanho_arquivo = tamanhoArquivo;
 		new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000); 
@@ -50,7 +57,7 @@ public class ReceberArquivo {
 	}
 
 	public double getPorcentagem(){
-		return porcentagem;
+		return porcentagem+incremento;
 	}
 
 	public long gettTempoRestante(){
