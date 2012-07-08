@@ -185,7 +185,7 @@ public class Client{
 
 								System.out.println("Carregando informacoes do usuario ... ");
 								try{
-									File temp = new File(this.mainDir + login + ".login");
+									/*File temp = new File(this.mainDir + login + ".login");
 									if(temp.exists()){
 										temp.delete();
 									}else{
@@ -205,11 +205,11 @@ public class Client{
 									arquivoOut.close();
 									System.out.println("Leitura das informacoes do usuario finalizada.");
 
-									FileInputStream arquivoIn = new FileInputStream(temp);
-									ObjectInputStream userReader = new ObjectInputStream(arquivoIn);
+									FileInputStream arquivoIn = new FileInputStream(temp);*/
+									ObjectInputStream userReader = new ObjectInputStream(this.socketToServer.getInputStream());
 
 									try{
-										this.usuario = (Usuario) userReader.readObject();
+										this.usuario = (Usuario) userReader.readUnshared();
 										System.out.println("Informacoes do usuario carregadas.");
 
 										this.usuario.getListaArquivos().clearAllStats();
