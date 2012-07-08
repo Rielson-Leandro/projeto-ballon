@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.SocketException;
+import java.util.Timer;
 import java.util.TimerTask;
 
 import javax.swing.JFrame;
@@ -19,8 +20,7 @@ public class EnviarArquivo {
 	FileInputStream stream_arquivo_enviar;
 	miniSocket socket;
 	miniServerSocket miniServerSocket;
-	Velocidade grafico_velocide;
-	long tamanhoArquivo;
+	long tamanho_arquivo;
 	double porcentagem;
 	double repVelo;
 	long tempo_restante;
@@ -29,10 +29,11 @@ public class EnviarArquivo {
 		File arquivo = new File(caminho_arquivo);
 		try{
 			if(arquivo.isFile()){
-				this.tamanhoArquivo = arquivo.length();
+				this.tamanho_arquivo = arquivo.length();
 				stream_arquivo_enviar = new FileInputStream(arquivo);
 				miniServerSocket = new miniServerSocket(porta_envio, stream_arquivo_enviar);
-				this.rodarGUI();
+				socket = miniServerSocket.accept();
+				new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000);
 			}
 
 
@@ -44,29 +45,7 @@ public class EnviarArquivo {
 			throw new ErroConexaoException();
 		}
 	}
-
-	protected void rodarGUI(){
-		grafico_velocide = new Velocidade();
-		grafico_velocide.setBounds(300, 300, 300, 200);
-		grafico_velocide.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-	}
-
-	public void iniciarTransferencia() throws IOException{
-		socket = miniServerSocket.accept();
-	}
-
-	public void mostrar_graficos(){
-		grafico_velocide.setVisible(true);
-	}
-
-	public void esconder_grafico(){
-		grafico_velocide.setVisible(true);
-	}
-
-	public void matar_grafico(){
-		grafico_velocide.setEnabled(false);
-	}
-
+	
 	private class Bandwidth extends TimerTask{
 		int contador_zeros;
 		long ultimo_valor;
@@ -79,15 +58,14 @@ public class EnviarArquivo {
 				contador_zeros++;
 				if(contador_zeros%2==0){
 					repVelo = (repVelo * 0.825) + ((instant_velo / 1024)*0.175);
-					Velocidade.setText(0 + " Kb/s");
 				}
 			}else{
 				contador_zeros = 0;
 				repVelo = (repVelo * 0.825) + ((instant_velo / 1024)*0.175);
-				grafico_velocide.setText((int) repVelo + " Kb/s");
 			}
-			porcentagem = socket.last_send.get()/tamanhoArquivo;
-			tempo_restante = (long) ((tamanhoArquivo-socket.last_send.get())/repVelo);
+			porcentagem = socket.last_send.get()/tamanho_arquivo;
+			
+			tempo_restante = (long)((tempo_restante*0.125) + 0.8175*((tamanho_arquivo-socket.last_send.get())/repVelo));
 		}
 	}
 

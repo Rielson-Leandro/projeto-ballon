@@ -66,7 +66,7 @@ public class miniSocket{
 	AtomicBoolean close = new AtomicBoolean(false); //booleano com condição de parada das threads
 	AtomicBoolean connect = new AtomicBoolean(false);
 
-	AtomicLong velocidade = new AtomicLong(0);
+//	AtomicLong velocidade = new AtomicLong(0);
 
 	byte[] SYN_BYTE = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0};
 	byte[] SYN_ACK_BYTE = {0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0};
@@ -318,14 +318,14 @@ public class miniSocket{
 							if(seqNum==rcv_base.get()){ //se temos o proximo pacote esperado
 								arquivo_receber.write(buffer, Pacote.head_payload, dataLength); //escreve para camada de cima
 								rcv_base.incrementAndGet();//incrementa a base da janela
-								velocidade.getAndAdd(dataLength);
+//								velocidade.getAndAdd(dataLength);
 								last_receiverd.getAndAdd(dataLength);
 								
 								//tenta pegar mais pacotes que possa estar no buffer de recepção
 								while(rec_packet_buffer.get(rcv_base.get())!=null){
 									byte[] dados = rec_packet_buffer.get(rcv_base.get());
 									dataLength = OperacoesBinarias.extrairComprimentoDados(dados);
-									velocidade.getAndAdd(dataLength);
+//									velocidade.getAndAdd(dataLength);
 									last_receiverd.getAndAdd(dataLength);
 									rcv_base.incrementAndGet(); //incrementa a base de recepção para o proximo pacote
 									arquivo_receber.write(dados, Pacote.head_payload,dataLength);
