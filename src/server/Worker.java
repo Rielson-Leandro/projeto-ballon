@@ -82,7 +82,7 @@ public class Worker extends Thread{
 	private void gerenciamentoUsuarios(String[] msg){
 		if(msg[0].equals("LOGINRQST")){
 
-			Usuario rqstUser = this.servidor.executeLogin2(msg[1], msg[2]);
+			Usuario rqstUser = this.servidor.executeLogin(msg[1], msg[2]);
 
 			if( rqstUser != null ){
 				System.out.println(msg[1] + " logado com SUCESSO!");
@@ -95,7 +95,13 @@ public class Worker extends Thread{
 					this.toCLient.writeBytes("LOGINRQST#successful\n");
 
 					System.out.println("Preparando pra enviar dados do usuario.");
-					File temp = new File(this.servidor.getUsersDir() + msg[1] + ".login");
+					
+					ObjectOutputStream out = new ObjectOutputStream(this.socketClient.getOutputStream());
+					
+					out.writeUnshared(this.user);
+					out.flush();
+					
+					/*File temp = new File(this.servidor.getUsersDir() + msg[1] + ".login");
 					System.out.print("Carregando usuario ... ");
 					FileInputStream fis = new FileInputStream(temp);
 					int lidos = 0;
@@ -111,7 +117,7 @@ public class Worker extends Thread{
 						}
 					}
 					fis.close();
-					System.out.println("Transferencia de usuario finalizada.");
+					System.out.println("Transferencia de usuario finalizada.");*/
 
 
 				}catch(IOException e){
@@ -131,7 +137,7 @@ public class Worker extends Thread{
 
 		if(msg[0].equals("SIGNUP")){
 
-			this.servidor.executeSignUp2(msg[1], msg[2]);
+			this.servidor.executeSignUp(msg[1], msg[2]);
 
 			try{ 
 				this.toCLient.writeBytes("SIGNUP#successful\n");
