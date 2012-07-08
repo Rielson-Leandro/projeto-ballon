@@ -69,6 +69,9 @@ public class ReceberArquivo {
 			return 0;
 		else
 			return repVelo;
-
+	}
+	
+	public long get_ultimo_byte_recebido(){
+		return this.socket.last_receiverd.get();
 	}
 }
