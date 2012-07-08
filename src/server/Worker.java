@@ -58,27 +58,23 @@ public class Worker extends Thread{
 		String[] msg = mensagem.split("#");
 		System.out.println("Interpretando mensagem: " + mensagem);
 
-		switch(msg[0]){
-		case "LOGINRQST":
-		case "SIGNUP":
-		case "LOGOUT":
+		if(msg[0].equals("LOGINRQST") || msg[0].equals("SIGNUP") || msg[0].equals("LOGOUT") ){
 			System.out.println("Mensagem encaminhada para o gerenciador de usuarios...");
 			this.gerenciamentoUsuarios(msg);
-			break;
-		case "GETREADY":
-		case "SENDFILE":
+		}
+
+		if(msg[0].equals("GETREADY") || msg[0].equals("SENDFILE") ){
 			System.out.println("Mensagem encaminhada para o gerenciador de transferencias...");
 			this.gerenciamentoTransferencias(msg);
-			break;
-		case "REMOVEFILE":
+		}
+
+		if(msg[0].equals("REMOVEFILE") ){
 			this.gerenciamentoArquivos(msg);
-			break;
-		case "CONCHEK":
+		}
+
+		if(msg[0].equals("CONCHEK") ){
 			System.out.println("Mensagem encaminhada para o gerenciador de conexao...");
 			this.gerenciamentoConexao(msg);
-			break;
-		default:
-			System.out.println("Mensagem invalida!");
 		}
 
 	}
@@ -116,7 +112,7 @@ public class Worker extends Thread{
 					}
 					fis.close();
 					System.out.println("Transferencia de usuario finalizada.");
-					
+
 
 				}catch(IOException e){
 					System.out.println("FALHA ao enviar a mensagem de login bem sucedido para o cliente.");
@@ -143,7 +139,7 @@ public class Worker extends Thread{
 				System.out.println("Falha ao enviar a msg de cadastro bem sucedido para o cliente.");
 			}
 		}
-		
+
 		if(msg[0].equals("LOGOUT")){
 
 			this.isConnected = false;
