@@ -27,6 +27,7 @@ public class Transfer extends Thread{
 	private ServerSocket original;
 	private boolean stayAlive;
 	private boolean rcvIsClient;
+	private File fileInClient;
 
 	public Transfer(){
 		super();
@@ -42,6 +43,8 @@ public class Transfer extends Thread{
 		this.socket = skt;
 		this.estado = new TransferState(pathFileToTransfer, caminhoPastaEstados);
 		this.arq = arquivo;
+
+
 		this.setUpTransferStateFile();
 	}
 
@@ -56,8 +59,9 @@ public class Transfer extends Thread{
 		this.arq = arquivo;
 
 		if(isClient){
-			
+
 			File temp = new File(fileDir + this.arq.getNomeOriginal());
+			this.fileInClient = temp;
 
 			try{
 				temp.createNewFile();
@@ -196,7 +200,9 @@ public class Transfer extends Thread{
 
 					int lidos = 0;
 					long total = 0;
+					this.arq.setSyncing(true);
 					do{
+
 						if(this.stayAlive){
 							try{
 
@@ -240,10 +246,8 @@ public class Transfer extends Thread{
 				System.out.println("O arquivo " + this.estado.getPath() + " nao foi encontrado.");
 			}
 
-			if(!this.rcvIsClient){
-				this.arq.setSyncing(false);
-				this.arq.setSyncStatus(true);
-			}
+			this.arq.setSyncing(false);
+			this.arq.setSyncStatus(true);
 
 			this.deleteState();
 		}
@@ -257,8 +261,10 @@ public class Transfer extends Thread{
 				DataOutputStream saidaDados = new DataOutputStream(this.outDados);
 
 				int lidos = 0;
+
 				this.arq.setSyncing(true);
 				while(lidos != -1 && this.stayAlive){
+
 					try{
 						lidos = entradaDados.read(buffer);
 
@@ -292,9 +298,10 @@ public class Transfer extends Thread{
 				this.original.close();
 
 				if(this.rcvIsClient){
-					this.arq.setSyncing(false);
-					this.arq.setSyncStatus(true);
+					this.arq.setUltimaModificacao(this.fileInClient.lastModified());
 				}
+				this.arq.setSyncing(false);
+				this.arq.setSyncStatus(true);
 
 			}catch(IOException e){
 				System.out.println("Falha.");
