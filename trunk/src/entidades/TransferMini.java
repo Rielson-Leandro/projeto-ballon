@@ -49,13 +49,17 @@ public class TransferMini extends Thread{
 	private void setUpTransferStateFile(){
 		//selecionar o numero de ordem
 		int numOrdem = 0;
+		boolean selecionado = false;
 		File remFile;
 		do{
+			System.out.println("buscando rem");
 			remFile = new File(this.remainingDir + numOrdem + ".rem");
 			if(remFile.exists()){
 				numOrdem++;
+			}else{
+				selecionado = true;
 			}
-		}while(!remFile.exists());
+		}while(!selecionado);
 		
 		try {
 			remFile.createNewFile();
