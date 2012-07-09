@@ -56,7 +56,7 @@ public class EnviarArquivo {
 		@Override
 		public void run() {
 			
-			if(porcentagem==1){
+			if(porcentagem==100){
 				this.cancel();
 			}
 			

@@ -36,6 +36,11 @@ public class ReceberArquivo {
 
 		@Override
 		public void run() {
+			
+			if(porcentagem==100){
+				this.cancel();
+			}
+			
 			long instant_velo = socket.last_receiverd.get()-this.ultimo_valor;
 			this.ultimo_valor = socket.last_receiverd.get();
 			if(instant_velo==0){
