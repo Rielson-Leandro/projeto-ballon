@@ -175,7 +175,22 @@ public class Worker extends Thread{
 
 		//GETREADY#user#caminhoOriginal
 		if(msg[0].equals("GETREADY")){
-			boolean userCorreto = false;
+			
+			int portaDisponivel = this.getPortaDisponivel();
+			Arquivo novoArquivo = new Arquivo(msg[2], msg[1]);
+			
+			try {
+				this.toCLient.writeBytes("SENDONPORT#" + msg[1] + "#" + portaDisponivel + "#" + novoArquivo.getHash() + "\n" );
+				
+				TransferMini transfer = new TransferMini();
+				transfer.setReciever(this.servidor.getFilesDir() + novoArquivo.getHash() + ".file", portaDisponivel, this.socketClient.getInetAddress(), Integer.parseInt(msg[3]), false);
+				transfer.start();
+				
+			} catch (IOException e) {
+				System.out.println("FALHA ao enviar a msg de confirmacao de porta para o cliente.");
+			}
+			
+			/*boolean userCorreto = false;
 
 			ServerSocket socketFiles = this.getServerDisponivel();
 			if(socketFiles != null){
@@ -189,11 +204,9 @@ public class Worker extends Thread{
 						//envia a porta pra onde o cliente deve enviar o arquivo
 						// SENDONPORT#user#porta#hash
 						int portaDisponivel = this.getPortaDisponivel();
-						this.toCLient.writeBytes("SENDONPORT#" + msg[1] + "#" + portaDisponivel/*socketFiles.getLocalPort()*/ + "#" + novoArquivo.getHash() + "\n" );
-
-						ReceberArquivo receber = new ReceberArquivo(this.servidor.getFilesDir()+novoArquivo.getHash(), portaDisponivel, this.socketClient.getInetAddress(), Long.parseLong(msg[3]), false);
+						this.toCLient.writeBytes("SENDONPORT#" + msg[1] + "#" + socketFiles.getLocalPort() + "#" + novoArquivo.getHash() + "\n" );
 						
-						/*Socket transferSocket = socketFiles.accept();
+						Socket transferSocket = socketFiles.accept();
 
 						if( this.socketClient.getInetAddress().getHostAddress().equals(transferSocket.getInetAddress().getHostAddress()) ){
 
@@ -206,13 +219,13 @@ public class Worker extends Thread{
 							this.user.getListaArquivos().addArquivo(novoArquivo);
 							this.servidor.saveUserList();
 							transferidor.start();
-						}*/
+						}
 					}while(!userCorreto);
 
 				}catch(IOException e){
 					System.out.println("Falha ao capturar o socket de transferencia.");
 				}
-			}
+			}*/
 		}
 
 		if(msg[0].equals("SENDFILE")){

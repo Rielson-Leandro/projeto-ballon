@@ -234,6 +234,7 @@ public class Sincronizador extends Thread{
 		Arquivo arq = this.lista.getByHash(hash);
 		TransferMini transfer = new TransferMini(arq);
 		transfer.setReciever(arq.getCaminho(), portaDisponivel, this.skt.getInetAddress(), arq.getTamanho(), false);
+		transfer.start();
 		
 		/*try{
 			Socket socketAceito = socketReceptor.accept();
