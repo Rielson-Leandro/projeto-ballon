@@ -1,5 +1,6 @@
 package entidades;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 
@@ -101,6 +102,8 @@ public class TransferMini extends Thread{
 				if(isClient){
 					this.arquivo.setSyncing(false);
 					this.arquivo.setSyncStatus(true);
+					File temp = new File(this.caminhoArquivo);
+					this.arquivo.setUltimaModificacao(temp.lastModified());
 				}
 
 			} catch (IOException e1) {

@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Vector;
 
 import network.EnviarArquivo;
@@ -271,9 +273,10 @@ public class Sincronizador extends Thread{
 
 			//System.out.print("Varrendo ... ");
 			this.lista.setAllNotSynced();
-			System.out.println(this.cliente.getUser().getListaArquivos().listagem());
+			//System.out.println(this.cliente.getUser().getListaArquivos().listagem());
 			this.compararDiretorioLista();
 			this.compararListaDiretorio();
+			System.out.println(this.cliente.getUser().getListaArquivos().listagem());
 			//System.out.println("Varredura finalizada!");
 
 			if(this.firstTime){
@@ -287,6 +290,10 @@ public class Sincronizador extends Thread{
 			}
 		}
 
+		System.out.println("threads antes de finalizar: " + Thread.activeCount());
 		System.out.println("SYNCER finalizada!");
+		System.out.println("threads depois de finalizar: " + Thread.activeCount());
+		Map<Thread, StackTraceElement[]> t = Thread.getAllStackTraces();
+		System.out.println("Vamos ver o que esta rodando"+t.toString());
 	}
 }

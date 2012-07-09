@@ -181,6 +181,7 @@ public class Worker extends Thread{
 				TransferMini transfer = new TransferMini();
 				transfer.setReciever(this.servidor.getFilesDir() + novoArquivo.getHash() + ".file", portaDisponivel, this.socketClient.getInetAddress(), Integer.parseInt(msg[3]), false);
 				transfer.start();
+				this.user.getListaArquivos().addArquivo(novoArquivo);
 				
 			} catch (IOException e) {
 				System.out.println("FALHA ao enviar a msg de confirmacao de porta para o cliente.");
