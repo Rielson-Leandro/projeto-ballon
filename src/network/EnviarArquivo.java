@@ -21,7 +21,7 @@ public class EnviarArquivo {
 	long tamanho_arquivo;
 	double porcentagem;
 	double repVelo;
-	long tempo_restante;
+	double tempo_restante;
 	double incremento = 0;
 	
 	public EnviarArquivo(String caminho_arquivo,int porta_envio,long seek) throws ArquivoNaoEncontradoException, ErroConexaoException{
@@ -55,6 +55,11 @@ public class EnviarArquivo {
 		
 		@Override
 		public void run() {
+			
+			if(porcentagem==1){
+				this.cancel();
+			}
+			
 			long instant_velo = socket.last_send.get()-this.ultimo_valor;
 			this.ultimo_valor = socket.last_send.get();
 			if(instant_velo==0){
@@ -67,9 +72,9 @@ public class EnviarArquivo {
 				repVelo = (repVelo * 0.825) + ((instant_velo / 1024)*0.175);
 			}
 			
-			porcentagem = (socket.last_send.get()/tamanho_arquivo)*100;
+			porcentagem = ((double)socket.last_send.get()/(double)tamanho_arquivo)*100;
 			
-			tempo_restante = (long)((tempo_restante*0.125) + 0.8175*((tamanho_arquivo-socket.last_send.get())/repVelo));
+			tempo_restante = (((tempo_restante*0.125) + 0.8175*((double)(tamanho_arquivo-socket.last_send.get())/1024)/repVelo));
 		}
 	}
 
@@ -77,7 +82,7 @@ public class EnviarArquivo {
 		return porcentagem+incremento;
 	}
 	
-	public long gettTempoRestante(){
+	public double gettTempoRestante(){
 		return tempo_restante;
 	}
 	
