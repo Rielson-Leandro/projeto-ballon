@@ -141,18 +141,32 @@ public class miniSocket{
 		this.server_port = porta_servidor;
 		this.server_adress = endereco_servidor;
 		DatagramPacket receiver = new DatagramPacket(new byte[Pacote.head_payload], Pacote.head_payload);
+		
 		while(!connect.get()){
-			
+			System.out.println("Solicitando conexao...");
 			for (int i = 0; i < max_win; i++) {
 				real_socket.send(new DatagramPacket(SYN_BYTE, Pacote.head_payload, endereco_servidor, porta_servidor));
 			}
+			
 			real_socket.receive(receiver);
+			System.out.println("Conexao feita com o servidor com sucesso!");
 			if(receiver.getAddress().equals(endereco_servidor) && receiver.getPort()==porta_servidor){
 				connect.set(true);
 			}
 		}
-
+		
+		System.out.println("Solicitacao concluida com sucesso!");
 		new Thread(new Receiver()).start();
+	}
+	
+	public void try_connect(){
+		for (int i = 0; i < max_win; i++) {
+			try {
+				real_socket.send(new DatagramPacket(SYN_BYTE, Pacote.head_payload, this.server_adress, this.server_port));
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 
 	//usado por quem vai enviar o arquivo
