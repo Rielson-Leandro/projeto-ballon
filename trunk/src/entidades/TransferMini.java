@@ -89,7 +89,7 @@ public class TransferMini extends Thread{
 
 			try {
 				this.reciever = new ReceberArquivo(this.caminhoArquivo, this.portaTransferencia, this.endereco, this.tamanhoArquivo, this.isAppend);
-
+				System.out.println("Passou pelo handshake.");
 				while(this.reciever.getPorcentagem() < 100){
 					System.out.println("Recebidos: " + (int) this.reciever.getPorcentagem() + "%");
 					try {
