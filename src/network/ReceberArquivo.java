@@ -18,16 +18,32 @@ public class ReceberArquivo {
 	long tempo_restante;
 	boolean velocidade_zero = false;
 	double incremento = 0;
-	
+	int max_tentativas = 100;	
+
 	public ReceberArquivo(String caminho_arquivo, int porta_servidor_arquivo, InetAddress endereco_servidor_sarquivo,long tamanhoArquivo, boolean continuacao_arquivo) throws IOException {
 		this.arquivo_para_receber = new File(caminho_arquivo);
 		this.stream_arquivo_receber = new FileOutputStream(arquivo_para_receber, continuacao_arquivo);
 		if(continuacao_arquivo){
 			incremento = this.arquivo_para_receber.length()/tamanhoArquivo;
 		}
+		new Timer().scheduleAtFixedRate(new Try_connect(), 500, 500);
 		socket = new miniSocket(porta_servidor_arquivo, endereco_servidor_sarquivo, stream_arquivo_receber);
 		this.tamanho_arquivo = tamanhoArquivo;
 		new Timer().scheduleAtFixedRate(new Bandwidth(), 1000, 1000); 
+	}
+
+
+	private class Try_connect extends TimerTask{
+		int tentativas=0;
+		@Override
+		public void run() {
+			if(socket.isConnected() || tentativas==max_tentativas){
+				this.cancel();
+			}else{
+				socket.try_connect();
+				tentativas++;
+			}
+		}
 	}
 
 	private class Bandwidth extends TimerTask{
@@ -36,11 +52,11 @@ public class ReceberArquivo {
 
 		@Override
 		public void run() {
-			
+
 			if(porcentagem==100){
 				this.cancel();
 			}
-			
+
 			long instant_velo = socket.last_receiverd.get()-this.ultimo_valor;
 			this.ultimo_valor = socket.last_receiverd.get();
 			if(instant_velo==0){
@@ -58,7 +74,7 @@ public class ReceberArquivo {
 			porcentagem = ((double)socket.last_receiverd.get()/(double)tamanho_arquivo)*100;
 
 			tempo_restante = (long)(((tempo_restante*0.125) + 0.875*((tamanho_arquivo-socket.last_receiverd.get())/1024)/repVelo));
-			
+
 			System.out.println(Thread.currentThread().getName());
 		}
 	}
@@ -77,7 +93,7 @@ public class ReceberArquivo {
 		else
 			return repVelo;
 	}
-	
+
 	public long get_ultimo_byte_recebido(){
 		return this.socket.last_receiverd.get();
 	}
