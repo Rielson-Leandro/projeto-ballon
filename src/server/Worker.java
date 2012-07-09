@@ -176,10 +176,13 @@ public class Worker extends Thread{
 			Arquivo novoArquivo = new Arquivo(msg[2], msg[1]);
 			
 			try {
+				System.out.println("SENDONPORT#" + msg[1] + "#" + portaDisponivel + "#" + novoArquivo.getHash());
 				this.toCLient.writeBytes("SENDONPORT#" + msg[1] + "#" + portaDisponivel + "#" + novoArquivo.getHash() + "\n" );
 				
 				TransferMini transfer = new TransferMini();
+				System.out.println("Recebendo : " + this.servidor.getFilesDir() + novoArquivo.getHash() + ".file");
 				transfer.setReciever(this.servidor.getFilesDir() + novoArquivo.getHash() + ".file", portaDisponivel, this.socketClient.getInetAddress(), Integer.parseInt(msg[3]), false);
+				System.out.println("Iniciando transferencia ... ");
 				transfer.start();
 				this.user.getListaArquivos().addArquivo(novoArquivo);
 				
