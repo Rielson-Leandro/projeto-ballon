@@ -31,7 +31,7 @@ public class miniSocket{
 	protected DatagramSocket real_socket;
 
 	private boolean is_server = false;	
-//	private boolean is_connected = false;
+	//	private boolean is_connected = false;
 
 	//dados para controle de envio
 	private AtomicInteger send_base = new AtomicInteger(0); //base da janela de congestionamento
@@ -45,8 +45,8 @@ public class miniSocket{
 	private AtomicInteger estimateRTT_for_packet = new AtomicInteger(0); //numero do pacote para o qual se esta estimando o RTT
 
 	protected int max_win = 16;
-	protected int max_try = 30;
-	
+	protected int max_try = 300;
+
 	AtomicLong temp_SampleRTT = new AtomicLong(0);
 	AtomicLong last_send = new AtomicLong(0); //valor do ultimo byte que se tem certeza que foi recebido pelo cliente
 	AtomicLong last_receiverd = new AtomicLong(0);
@@ -146,11 +146,11 @@ public class miniSocket{
 		this.server_adress = endereco_servidor;
 		DatagramPacket receiver = new DatagramPacket(new byte[Pacote.head_payload], Pacote.head_payload);
 		while(!connect.get()){
-			
+
 			for (int i = 0; i < max_win; i++) {
 				real_socket.send(new DatagramPacket(SYN_BYTE, Pacote.head_payload, endereco_servidor, porta_servidor));
 			}
-			new Timer().scheduleAtFixedRate(new try_connect(), 1000, 1000);
+			new Timer().scheduleAtFixedRate(new try_connect(), 300, 300);
 			real_socket.receive(receiver);
 			if(receiver.getAddress().equals(endereco_servidor) && receiver.getPort()==porta_servidor){
 				connect.set(true);
@@ -161,7 +161,7 @@ public class miniSocket{
 
 		new Thread(new Receiver()).start();
 	}
-	
+
 	public void resend_solic(){
 		for (int i = 0; i < max_win; i++) {
 			try {
@@ -174,7 +174,7 @@ public class miniSocket{
 			}
 		}
 	}
-	
+
 	//usado por quem vai enviar o arquivo
 	public miniSocket(int port) throws IOException {
 		is_server = true;
@@ -294,7 +294,7 @@ public class miniSocket{
 						if(arquivo_enviar!=null){
 							arquivo_enviar.close();
 						}
-						
+
 						if(arquivo_receber!=null){
 							arquivo_receber.close();
 						}
@@ -341,7 +341,7 @@ public class miniSocket{
 
 					}else if(OperacoesBinarias.extrairRST(buffer)){
 						arquivo_receber.close();
-						
+
 					}else{ //temos um pacote com dados
 
 						if(packet.getAddress().equals(server_adress) && packet.getPort()==server_port){ //tenho um ack de quem me comunico
@@ -444,17 +444,22 @@ public class miniSocket{
 			//			System.out.println("Encerrado temporizado...");
 		}
 	}
-	
+
 	class try_connect extends TimerTask{
 		int tentativas =0 ;
 		@Override
 		public void run() {
+			System.out.println("Reenviando solicitacao de conexao");
 			if(tentativas==max_try || connect.get()){
+				if(tentativas==max_try){
+					close.set(true);
+					real_socket.close();
+				}
 				this.cancel();
 			}else{
 				resend_solic();
 			}
 		}
-		
+
 	}
 }
