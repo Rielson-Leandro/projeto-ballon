@@ -103,10 +103,6 @@ public class Worker extends Thread{
 					
 					Socket lgnSkt = this.loginSocket.accept();
 					DataOutputStream loginWriter = new DataOutputStream(lgnSkt.getOutputStream());
-					/*ObjectOutputStream out = new ObjectOutputStream(this.socketClient.getOutputStream());
-					
-					out.writeUnshared(this.user);
-					out.flush();*/
 					
 					File temp = new File(this.servidor.getUsersDir() + msg[1] + ".login");
 					System.out.print("Carregando usuario ... ");
@@ -173,7 +169,7 @@ public class Worker extends Thread{
 
 	private void gerenciamentoTransferencias(String[] msg){
 
-		//GETREADY#user#caminhoOriginal
+		//GETREADY#user#caminhoOriginal#tamanhoArquivo
 		if(msg[0].equals("GETREADY")){
 			
 			int portaDisponivel = this.getPortaDisponivel();

@@ -179,6 +179,8 @@ public class Sincronizador extends Thread{
 		//Socket transferSkt;
 
 		System.out.println("ENVIANDO arquivo do servidor:\nNome original: " + temp[temp.length - 1] + "\nCodigo hash: " + (this.cliente.getUser().getLogin() + temp[temp.length - 1]).hashCode() );
+		System.out.println("");
+		
 		if(this.cliente.sendMensagem("GETREADY#" + this.cliente.getUser().getLogin() + "#" + arq.getCaminho() + "#" + arquivoFisico.length())){
 
 			String[] msgPorta;
@@ -193,7 +195,8 @@ public class Sincronizador extends Thread{
 					msgPorta = lido.split("#");
 
 					if( msgPorta[0].equals("SENDONPORT") && msgPorta[1].equals(this.cliente.getUser().getLogin()) && msgPorta[3].equals(arq.getHash()) ){
-
+						
+						portaSelecionada = true;
 						TransferMini transfer = new TransferMini(arq);
 						transfer.setSender(arq.getCaminho(), Integer.parseInt(msgPorta[2]), 0);
 						transfer.start();
