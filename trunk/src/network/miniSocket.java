@@ -449,7 +449,7 @@ public class miniSocket{
 		int tentativas =0 ;
 		@Override
 		public void run() {
-			System.out.println("Reenviando solicitacao de conexao");
+			System.out.println("Reenviando solicitacao de conexao "+tentativas);
 			if(tentativas==max_try || connect.get()){
 				if(tentativas==max_try){
 					close.set(true);
@@ -457,6 +457,7 @@ public class miniSocket{
 				}
 				this.cancel();
 			}else{
+				tentativas++;
 				resend_solic();
 			}
 		}
