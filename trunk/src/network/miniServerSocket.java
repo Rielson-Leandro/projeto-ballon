@@ -29,8 +29,10 @@ public class miniServerSocket extends miniSocket{
 			System.out.println("Nova solicitação de conexão");
 			System.out.println("Endereço do cliente "+ packet.getAddress());
 			System.out.println("Porta do cliente "+ packet.getPort());
-			super.real_socket.send(new DatagramPacket(SYN_ACK_BYTE, Pacote.head_payload,packet.getAddress(),packet.getPort()));
-			super.real_socket.send(new DatagramPacket(SYN_ACK_BYTE, Pacote.head_payload,packet.getAddress(),packet.getPort()));
+			for (int i = 0; i < super.max_win; i++) {
+				super.real_socket.send(new DatagramPacket(SYN_ACK_BYTE, Pacote.head_payload,packet.getAddress(),packet.getPort()));
+			}
+						
 			new Thread(new Receiver()).start();
 			new Thread(new Sender()).start();
 		}
