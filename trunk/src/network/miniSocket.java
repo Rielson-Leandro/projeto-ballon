@@ -86,28 +86,32 @@ public class miniSocket{
 	FileOutputStream arquivo_receber;
 
 	public void close(){
-		synchronized (sinc_send_socket) {
-			byte[] to_fin = new byte[Pacote.head_payload];
-			OperacoesBinarias.inserirCabecalho(to_fin, 0, 0, false, false, false, true, 0, 0);
-			DatagramPacket packet;
-			if(is_server){
-				packet = new DatagramPacket(to_fin, Pacote.head_payload,client_adress,client_port);
-			}else{
-				packet = new DatagramPacket(to_fin, Pacote.head_payload,server_adress,server_port);	
-			}
-
-			try {
-				for (int i = 0; i < max_win; i++) {
-					real_socket.send(packet);
+		if(!real_socket.isClosed()){
+			synchronized (sinc_send_socket) {
+				byte[] to_fin = new byte[Pacote.head_payload];
+				OperacoesBinarias.inserirCabecalho(to_fin, 0, 0, false, false, false, true, 0, 0);
+				DatagramPacket packet;
+				if(is_server){
+					packet = new DatagramPacket(to_fin, Pacote.head_payload,client_adress,client_port);
+				}else{
+					packet = new DatagramPacket(to_fin, Pacote.head_payload,server_adress,server_port);	
 				}
-			} catch (IOException e) {
-				System.out.println("Problema com socket interno");
-				System.out.println("Fechando conexão...");
-				close.set(true);
+
+				try {
+					for (int i = 0; i < max_win && !real_socket.isClosed(); i++) {
+						real_socket.send(packet);
+					}
+				} catch (IOException e) {
+					System.out.println("Problema com socket interno");
+					System.out.println("Fechando conexão...");
+					close.set(true);
+					e.printStackTrace();
+				}
 			}
+			close.set(true);
+			real_socket.close();
+
 		}
-		close.set(true);
-		real_socket.close();
 	}
 
 	public boolean isConnected(){
@@ -181,6 +185,7 @@ public class miniSocket{
 						System.out.println("Problemas com buffers internos");
 						System.out.println("Encerrando conexão...");
 						close.set(true);
+						e.printStackTrace();
 					}
 
 					if(as_read>0){
@@ -208,6 +213,7 @@ public class miniSocket{
 							} catch (IOException e) {
 								System.out.println("Não foi possível enviar um pacote, problema no Socket\nEncerrando conexão");
 								close.set(true);
+								e.printStackTrace();
 							} //envia pacote
 						}
 					}else{
@@ -401,6 +407,7 @@ public class miniSocket{
 										System.out.println("Fechando conexão");
 										close.set(true);
 										continua = false;
+										e.printStackTrace();
 									}
 								}
 							}
