@@ -200,7 +200,7 @@ public class Sincronizador extends Thread{
 					if( msgPorta[0].equals("SENDONPORT") && msgPorta[1].equals(this.cliente.getUser().getLogin()) && msgPorta[3].equals(arq.getHash()) ){
 						
 						portaSelecionada = true;
-						TransferMini transfer = new TransferMini(arq);
+						TransferMini transfer = new TransferMini(arq, this.cliente.getRemainigDir());
 						transfer.setSender(this.cliente.getFilesDir() + arq.getNomeOriginal(), Integer.parseInt(msgPorta[2]), 0);
 						
 						transfer.start();
@@ -239,7 +239,7 @@ public class Sincronizador extends Thread{
 		this.cliente.sendMensagem("SENDFILE#" + this.cliente.getUser().getLogin() + "#" + hash + "#" + portaDisponivel/*socketReceptor.getLocalPort()*/);
 		
 		Arquivo arq = this.lista.getByHash(hash);
-		TransferMini transfer = new TransferMini(arq);
+		TransferMini transfer = new TransferMini(arq, this.cliente.getRemainigDir());
 		transfer.setReciever(this.cliente.getFilesDir() + arq.getNomeOriginal(), portaDisponivel, this.skt.getInetAddress(), arq.getTamanho(), false);
 		transfer.start();
 		
