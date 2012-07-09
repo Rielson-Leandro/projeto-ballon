@@ -9,9 +9,13 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Vector;
 
+import network.EnviarArquivo;
+import network.exception.ErroConexaoException;
+
 import entidades.Arquivo;
 import entidades.ListaArquivos;
 import entidades.Transfer;
+import entidades.TransferMini;
 
 public class Sincronizador extends Thread{
 
@@ -163,15 +167,19 @@ public class Sincronizador extends Thread{
 
 		return retorno;
 	}
+	
+	private int getPortaDisponivel(){
+		return this.getServerDisponivel().getLocalPort();
+	}
 
 	private void enviarArquivo(File arquivoFisico, Arquivo arquivo){
 		String caminho = arquivoFisico.getPath();
 		String[] temp = caminho.replace(File.separatorChar, '#').split("#");
 		Arquivo  arq = arquivo;
-		Socket transferSkt;
+		//Socket transferSkt;
 
 		System.out.println("ENVIANDO arquivo do servidor:\nNome original: " + temp[temp.length - 1] + "\nCodigo hash: " + (this.cliente.getUser().getLogin() + temp[temp.length - 1]).hashCode() );
-		if(this.cliente.sendMensagem("GETREADY#" + this.cliente.getUser().getLogin() + "#" + arq.getCaminho() )){
+		if(this.cliente.sendMensagem("GETREADY#" + this.cliente.getUser().getLogin() + "#" + arq.getCaminho() + "#" + arquivoFisico.length())){
 
 			String[] msgPorta;
 			boolean portaSelecionada = false;
@@ -186,7 +194,11 @@ public class Sincronizador extends Thread{
 
 					if( msgPorta[0].equals("SENDONPORT") && msgPorta[1].equals(this.cliente.getUser().getLogin()) && msgPorta[3].equals(arq.getHash()) ){
 
-						try{
+						TransferMini transfer = new TransferMini(arq);
+						transfer.setSender(arq.getCaminho(), Integer.parseInt(msgPorta[2]), 0);
+						transfer.start();
+						
+						/*try{
 							transferSkt = new Socket(this.skt.getInetAddress().getHostAddress(), Integer.parseInt(msgPorta[2]));
 							portaSelecionada = true;
 
@@ -198,7 +210,7 @@ public class Sincronizador extends Thread{
 
 						}catch (IOException e) {
 							System.out.println("FALHA ao iniciar o socket de transferencia para IP " + this.skt.getInetAddress().getHostAddress() + " e PORT: " + Integer.parseInt(msgPorta[2]) );
-						}
+						}*/
 
 					}
 
@@ -213,11 +225,17 @@ public class Sincronizador extends Thread{
 	private void solicitarArquivo(String hash){
 		System.out.println("SOLICITANDO arquivo do servidor:\nNome original: " + this.lista.getByHash(hash).getNomeOriginal() + " ... Codigo hash: " +  this.lista.getByHash(hash).getHash() );	
 
-		ServerSocket socketReceptor = this.getServerDisponivel();
+		//ServerSocket socketReceptor = this.getServerDisponivel();
 
-		this.cliente.sendMensagem("SENDFILE#" + this.cliente.getUser().getLogin() + "#" + hash + "#" + socketReceptor.getLocalPort());
-
-		try{
+		int portaDisponivel = this.getPortaDisponivel();
+		
+		this.cliente.sendMensagem("SENDFILE#" + this.cliente.getUser().getLogin() + "#" + hash + "#" + portaDisponivel/*socketReceptor.getLocalPort()*/);
+		
+		Arquivo arq = this.lista.getByHash(hash);
+		TransferMini transfer = new TransferMini(arq);
+		transfer.setReciever(arq.getCaminho(), portaDisponivel, this.skt.getInetAddress(), arq.getTamanho(), false);
+		
+		/*try{
 			Socket socketAceito = socketReceptor.accept();
 
 			Transfer recpt = new Transfer();
@@ -228,7 +246,7 @@ public class Sincronizador extends Thread{
 
 		}catch(IOException e){
 			System.out.println("Falha ao capturar o socket para solicitacao do servidor.");
-		}
+		}*/
 	}
 
 	public void run(){

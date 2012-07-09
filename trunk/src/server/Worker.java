@@ -11,8 +11,11 @@ import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+import network.ReceberArquivo;
+
 import entidades.Arquivo;
 import entidades.Transfer;
+import entidades.TransferMini;
 import entidades.Usuario;
 
 public class Worker extends Thread{
@@ -185,9 +188,12 @@ public class Worker extends Thread{
 
 						//envia a porta pra onde o cliente deve enviar o arquivo
 						// SENDONPORT#user#porta#hash
-						this.toCLient.writeBytes("SENDONPORT#" + msg[1] + "#" + socketFiles.getLocalPort() + "#" + novoArquivo.getHash() + "\n" );
+						int portaDisponivel = this.getPortaDisponivel();
+						this.toCLient.writeBytes("SENDONPORT#" + msg[1] + "#" + portaDisponivel/*socketFiles.getLocalPort()*/ + "#" + novoArquivo.getHash() + "\n" );
 
-						Socket transferSocket = socketFiles.accept();
+						ReceberArquivo receber = new ReceberArquivo(this.servidor.getFilesDir()+novoArquivo.getHash(), portaDisponivel, this.socketClient.getInetAddress(), Long.parseLong(msg[3]), false);
+						
+						/*Socket transferSocket = socketFiles.accept();
 
 						if( this.socketClient.getInetAddress().getHostAddress().equals(transferSocket.getInetAddress().getHostAddress()) ){
 
@@ -200,7 +206,7 @@ public class Worker extends Thread{
 							this.user.getListaArquivos().addArquivo(novoArquivo);
 							this.servidor.saveUserList();
 							transferidor.start();
-						}
+						}*/
 					}while(!userCorreto);
 
 				}catch(IOException e){
@@ -210,7 +216,12 @@ public class Worker extends Thread{
 		}
 
 		if(msg[0].equals("SENDFILE")){
-			boolean userCorreto = false;
+			
+			TransferMini transfer = new TransferMini();
+			transfer.setSender(this.servidor.getFilesDir() + this.user.getListaArquivos().getByHash(msg[2]), Integer.parseInt(msg[3]), 0);
+			transfer.start();
+			
+			/*boolean userCorreto = false;
 
 			try{
 
@@ -237,7 +248,7 @@ public class Worker extends Thread{
 
 			}catch(IOException e){
 				System.out.println("Falha ao capturar o socket de transferencia.");
-			}
+			}*/
 		}
 	}
 
@@ -262,6 +273,10 @@ public class Worker extends Thread{
 		}while(!pronto);
 
 		return retorno;
+	}
+	
+	private int getPortaDisponivel(){
+		return this.getServerDisponivel().getLocalPort();
 	}
 
 	public void run(){

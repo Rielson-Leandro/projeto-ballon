@@ -14,6 +14,7 @@ public class Arquivo implements Serializable{
 	private AtomicBoolean isSynced;
 	private AtomicBoolean isSyncing;
 	private AtomicBoolean isReady;
+	private long tamanho;
 	private long ultimaMod;
 	
 	public Arquivo(String caminho, String uploader){
@@ -26,6 +27,7 @@ public class Arquivo implements Serializable{
 		this.isSyncing = new AtomicBoolean(false);
 		this.isReady = new AtomicBoolean(false);
 		File temp2 = new File(caminho);
+		this.tamanho = temp2.length();
 		this.ultimaMod = temp2.lastModified();
 	}
 
@@ -95,6 +97,14 @@ public class Arquivo implements Serializable{
 
 	public synchronized void setUltimaModificacao(long mod){
 		this.ultimaMod = mod;
+	}
+
+	public long getTamanho() {
+		return tamanho;
+	}
+
+	public void setTamanho(long tamanho) {
+		this.tamanho = tamanho;
 	}
 
 	public synchronized void setSyncStatus(boolean status){
