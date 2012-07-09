@@ -41,8 +41,8 @@ public class ReceberArquivo {
 				this.cancel();
 			}
 			
-			long instant_velo = socket.last_receiverd.get()-this.ultimo_valor;
-			this.ultimo_valor = socket.last_receiverd.get();
+			long instant_velo = socket.last_receiverd-this.ultimo_valor;
+			this.ultimo_valor = socket.last_receiverd;
 			if(instant_velo==0){
 				contador_zeros++;
 				if(contador_zeros%2==0){
@@ -55,9 +55,9 @@ public class ReceberArquivo {
 				repVelo = (repVelo * 0.825) + ((instant_velo / 1024)*0.175);
 			}
 
-			porcentagem = ((double)socket.last_receiverd.get()/(double)tamanho_arquivo)*100;
+			porcentagem = ((double)socket.last_receiverd/(double)tamanho_arquivo)*100;
 
-			tempo_restante = (long)(((tempo_restante*0.125) + 0.875*((tamanho_arquivo-socket.last_receiverd.get())/1024)/repVelo));
+			tempo_restante = (long)(((tempo_restante*0.125) + 0.875*((tamanho_arquivo-socket.last_receiverd)/1024)/repVelo));
 		}
 	}
 
@@ -77,6 +77,6 @@ public class ReceberArquivo {
 	}
 	
 	public long get_ultimo_byte_recebido(){
-		return this.socket.last_receiverd.get();
+		return this.socket.last_receiverd;
 	}
 }

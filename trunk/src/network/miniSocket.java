@@ -48,8 +48,8 @@ public class miniSocket{
 	protected int max_try = 50;
 
 	AtomicLong temp_SampleRTT = new AtomicLong(0);
-	AtomicLong last_send = new AtomicLong(0); //valor do ultimo byte que se tem certeza que foi recebido pelo cliente
-	AtomicLong last_receiverd = new AtomicLong(0);
+	long last_send = 0; //valor do ultimo byte que se tem certeza que foi recebido pelo cliente
+	long last_receiverd = 0;
 
 	private long min_timeout = 200;
 	private long EstimatedRTT = 1000;
@@ -127,7 +127,7 @@ public class miniSocket{
 	 * @return long - byes entregues com sucesso
 	 * **/
 	public long get_last_send(){
-		return this.last_send.get();
+		return this.last_send;
 	}
 
 	/**
@@ -135,7 +135,7 @@ public class miniSocket{
 	 *
 	 */
 	public void reset(){
-		this.last_send.set(0);
+		this.last_send=0;
 	}
 
 	//usado por quem vai receber o arquivo
@@ -264,7 +264,7 @@ public class miniSocket{
 				synchronized (sinc_send_buffer) {
 
 					while(!send_packet_buffer.isEmpty() && send_packet_buffer.get(0).isEnviado()){
-						last_send.addAndGet(send_packet_buffer.get(0).dataLenth);
+						last_send+=(send_packet_buffer.get(0).dataLenth);
 						send_base.incrementAndGet();//incrementa o valor send_base
 						send_packet_buffer.remove(0); //remove o pacore do buffer
 						send_packets_cont.incrementAndGet();
@@ -356,14 +356,14 @@ public class miniSocket{
 								arquivo_receber.write(buffer, Pacote.head_payload, dataLength); //escreve para camada de cima
 								rcv_base.incrementAndGet();//incrementa a base da janela
 								//								velocidade.getAndAdd(dataLength);
-								last_receiverd.getAndAdd(dataLength);
+								last_receiverd+=dataLength;
 
 								//tenta pegar mais pacotes que possa estar no buffer de recepção
 								while(rec_packet_buffer.get(rcv_base.get())!=null){
 									byte[] dados = rec_packet_buffer.get(rcv_base.get());
 									dataLength = OperacoesBinarias.extrairComprimentoDados(dados);
 									//									velocidade.getAndAdd(dataLength);
-									last_receiverd.getAndAdd(dataLength);
+									last_receiverd+=dataLength;
 									rcv_base.incrementAndGet(); //incrementa a base de recepção para o proximo pacote
 									arquivo_receber.write(dados, Pacote.head_payload,dataLength);
 								}
