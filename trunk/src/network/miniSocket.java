@@ -246,6 +246,7 @@ public class miniSocket{
 								real_socket.send(packet);
 							}
 							Thread.sleep(500);
+							arquivo_enviar.close();
 							close();
 						} catch (IOException e) {
 							e.printStackTrace();
@@ -254,7 +255,7 @@ public class miniSocket{
 						}
 					}
 				}else{
-
+					
 					if(!timer_run.get()){//se nenhum temporizador esta ativo ativa um
 						timer_run.set(true);
 						new Thread(new Timeout()).start();
