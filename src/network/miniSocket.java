@@ -45,7 +45,7 @@ public class miniSocket{
 	private AtomicInteger estimateRTT_for_packet = new AtomicInteger(0); //numero do pacote para o qual se esta estimando o RTT
 
 	protected int max_win = 16;
-	protected int max_try = 300;
+	protected int max_try = 50;
 
 	AtomicLong temp_SampleRTT = new AtomicLong(0);
 	AtomicLong last_send = new AtomicLong(0); //valor do ultimo byte que se tem certeza que foi recebido pelo cliente
