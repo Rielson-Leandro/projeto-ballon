@@ -104,6 +104,7 @@ public class Sincronizador extends Thread{
 			}
 			
 			temp = null;
+			
 		}
 	}
 
