@@ -58,6 +58,8 @@ public class ReceberArquivo {
 			porcentagem = ((double)socket.last_receiverd.get()/(double)tamanho_arquivo)*100;
 
 			tempo_restante = (long)(((tempo_restante*0.125) + 0.875*((tamanho_arquivo-socket.last_receiverd.get())/1024)/repVelo));
+			
+			System.out.println(Thread.currentThread().getName());
 		}
 	}
 
