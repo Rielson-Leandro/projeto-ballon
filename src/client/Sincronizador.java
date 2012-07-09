@@ -200,9 +200,10 @@ public class Sincronizador extends Thread{
 					if( msgPorta[0].equals("SENDONPORT") && msgPorta[1].equals(this.cliente.getUser().getLogin()) && msgPorta[3].equals(arq.getHash()) ){
 						
 						portaSelecionada = true;
+						
 						TransferMini transfer = new TransferMini(arq, this.cliente.getRemainigDir());
 						transfer.setSender(this.cliente.getFilesDir() + arq.getNomeOriginal(), Integer.parseInt(msgPorta[2]), 0);
-						
+						System.out.println("Porta selecionada, iniciando transferencia ... ");
 						transfer.start();
 						
 						/*try{
