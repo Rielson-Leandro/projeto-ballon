@@ -1,7 +1,10 @@
 package entidades;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.net.InetAddress;
 
 import network.EnviarArquivo;
@@ -18,7 +21,9 @@ public class TransferMini extends Thread{
 	private EnviarArquivo sender;
 	private ReceberArquivo reciever;
 	private String caminhoArquivo;
+	private String remainingDir;
 	private int portaTransferencia;
+	private EstadoTransferencia transferStateFile;
 
 	//campos sender
 	private long seek;
@@ -28,15 +33,79 @@ public class TransferMini extends Thread{
 	private long tamanhoArquivo;
 	private boolean isAppend;
 
-	public TransferMini(){
+	public TransferMini(String remDir){
 		this.isClient = false;
+		this.remainingDir = remDir;
+		this.setUpTransferStateFile();
 	}
 
-	public TransferMini(Arquivo arq) {
+	public TransferMini(Arquivo arq, String remDir) {
 		this.arquivo = arq;
 		this.isClient = true;
+		this.remainingDir = remDir;
+		this.setUpTransferStateFile();
 	}
 
+	private void setUpTransferStateFile(){
+		//selecionar o numero de ordem
+		int numOrdem = 0;
+		File remFile;
+		do{
+			remFile = new File(this.remainingDir + numOrdem + ".rem");
+			if(remFile.exists()){
+				numOrdem++;
+			}
+		}while(!remFile.exists());
+		
+		try {
+			remFile.createNewFile();
+		} catch (IOException e) {
+			System.out.println("FALHA ao criar o arquivo de estado " + numOrdem + ".rem");
+		}
+		this.transferStateFile = new EstadoTransferencia(this.remainingDir, numOrdem);
+		
+		//salva os dados iniciais
+		try{
+			FileOutputStream fos = new FileOutputStream(remFile);
+			try{
+				ObjectOutputStream out = new ObjectOutputStream(fos);
+				try{
+					out.writeObject(this.transferStateFile);
+					out.close();
+					fos.close();
+				}catch (Exception e) {
+					System.out.println("FALHA escrever dados iniciais para o arquivo de estado " + numOrdem + ".rem");
+				}
+			}catch (IOException e) {
+				System.out.println("FALHA ao criar o escritor de dados para o arquivo de estado " + numOrdem + ".rem");
+			}
+		}catch (IOException e) {
+			System.out.println("FALHA ao criar o canal de saida de dados para o arquivo de estado " + numOrdem + ".rem");
+		}
+	}
+	
+	private void saveTransferStateFile(){
+		//atualiza os dados do arquivo de estado
+		File remFile = new File(this.remainingDir + this.transferStateFile.getNumOrdem() + ".rem");
+		try{
+			FileOutputStream fos = new FileOutputStream(remFile);
+			try{
+				ObjectOutputStream out = new ObjectOutputStream(fos);
+				try{
+					out.writeObject(this.transferStateFile);
+					out.close();
+					fos.close();
+				}catch (Exception e) {
+					System.out.println("FALHA escrever dados de atualizacao para o arquivo de estado " + this.transferStateFile.getNumOrdem() + ".rem");
+				}
+			}catch (IOException e) {
+				System.out.println("FALHA ao criar o escritor de dados de atualizacao para o arquivo de estado " + this.transferStateFile.getNumOrdem() + ".rem");
+			}
+		}catch (IOException e) {
+			System.out.println("FALHA ao criar o canal de saida de dados de atualizacao para o arquivo de estado " + this.transferStateFile.getNumOrdem() + ".rem");
+		}
+	}
+	
 	public void setSender(String caminho_arquivo,int porta_envio,long seek){
 		this.isSender = true;
 		this.isReciever = false;
@@ -66,6 +135,7 @@ public class TransferMini extends Thread{
 
 				while(this.sender.getPorcentagem() < 100){
 					System.out.println("Enviados: " + (int) this.sender.getPorcentagem() + "%");
+					this.saveTransferStateFile();
 					try {
 						this.sleep(1000);
 					} catch (InterruptedException e) {
@@ -92,6 +162,7 @@ public class TransferMini extends Thread{
 				System.out.println("Passou pelo handshake.");
 				while(this.reciever.getPorcentagem() < 100){
 					System.out.println("Recebidos: " + (int) this.reciever.getPorcentagem() + "%");
+					this.saveTransferStateFile();
 					try {
 						this.sleep(1000);
 					} catch (InterruptedException e) {
@@ -116,4 +187,43 @@ public class TransferMini extends Thread{
 
 	}
 
+}
+
+
+class EstadoTransferencia implements Serializable{
+
+	private static final long serialVersionUID = 1L;
+	private long lastSentByte;
+	private String caminhoArquivoParaEnviar;
+	private int numOrdem;
+	
+	public EstadoTransferencia(String caminho, int numOrdem){
+		this.caminhoArquivoParaEnviar = caminho;
+		this.numOrdem = numOrdem;
+	}
+
+	public long getLastSentByte() {
+		return lastSentByte;
+	}
+
+	public void setLastSentByte(long lastSentByte) {
+		this.lastSentByte = lastSentByte;
+	}
+
+	public String getCaminho() {
+		return caminhoArquivoParaEnviar;
+	}
+
+	public void setCaminho(String caminho) {
+		this.caminhoArquivoParaEnviar = caminho;
+	}
+
+	public int getNumOrdem() {
+		return numOrdem;
+	}
+
+	public void setNumOrdem(int numOrdem) {
+		this.numOrdem = numOrdem;
+	}
+	
 }
