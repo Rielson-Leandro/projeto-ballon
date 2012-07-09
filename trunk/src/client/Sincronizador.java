@@ -202,6 +202,7 @@ public class Sincronizador extends Thread{
 						portaSelecionada = true;
 						TransferMini transfer = new TransferMini(arq);
 						transfer.setSender(this.cliente.getFilesDir() + arq.getNomeOriginal(), Integer.parseInt(msgPorta[2]), 0);
+						
 						transfer.start();
 						
 						/*try{
