@@ -7,8 +7,11 @@ import java.io.RandomAccessFile;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.sql.Time;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -28,7 +31,7 @@ public class miniSocket{
 	protected DatagramSocket real_socket;
 
 	private boolean is_server = false;	
-	private boolean is_connected = false;
+//	private boolean is_connected = false;
 
 	//dados para controle de envio
 	private AtomicInteger send_base = new AtomicInteger(0); //base da janela de congestionamento
@@ -42,7 +45,8 @@ public class miniSocket{
 	private AtomicInteger estimateRTT_for_packet = new AtomicInteger(0); //numero do pacote para o qual se esta estimando o RTT
 
 	protected int max_win = 16;
-
+	protected int max_try = 30;
+	
 	AtomicLong temp_SampleRTT = new AtomicLong(0);
 	AtomicLong last_send = new AtomicLong(0); //valor do ultimo byte que se tem certeza que foi recebido pelo cliente
 	AtomicLong last_receiverd = new AtomicLong(0);
@@ -115,7 +119,7 @@ public class miniSocket{
 	}
 
 	public boolean isConnected(){
-		return is_connected;
+		return connect.get();
 	}
 
 	/**
@@ -146,15 +150,31 @@ public class miniSocket{
 			for (int i = 0; i < max_win; i++) {
 				real_socket.send(new DatagramPacket(SYN_BYTE, Pacote.head_payload, endereco_servidor, porta_servidor));
 			}
+			new Timer().scheduleAtFixedRate(new try_connect(), 1000, 1000);
 			real_socket.receive(receiver);
 			if(receiver.getAddress().equals(endereco_servidor) && receiver.getPort()==porta_servidor){
 				connect.set(true);
+			}else{
+				System.out.println("Conexao comprometida....");
 			}
 		}
 
 		new Thread(new Receiver()).start();
 	}
-
+	
+	public void resend_solic(){
+		for (int i = 0; i < max_win; i++) {
+			try {
+				real_socket.send(new DatagramPacket(SYN_BYTE, Pacote.head_payload, this.server_adress, this.server_port));
+			} catch (IOException e) {
+				System.out.println("Problema com socket interno");
+				System.out.println("Fechando conexao...");
+				close.set(true);
+				e.printStackTrace();
+			}
+		}
+	}
+	
 	//usado por quem vai enviar o arquivo
 	public miniSocket(int port) throws IOException {
 		is_server = true;
@@ -423,5 +443,18 @@ public class miniSocket{
 			timer_run.set(false);
 			//			System.out.println("Encerrado temporizado...");
 		}
+	}
+	
+	class try_connect extends TimerTask{
+		int tentativas =0 ;
+		@Override
+		public void run() {
+			if(tentativas==max_try || connect.get()){
+				this.cancel();
+			}else{
+				resend_solic();
+			}
+		}
+		
 	}
 }
