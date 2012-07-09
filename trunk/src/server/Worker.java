@@ -228,7 +228,7 @@ public class Worker extends Thread{
 		if(msg[0].equals("SENDFILE")){
 			
 			TransferMini transfer = new TransferMini();
-			transfer.setSender(this.servidor.getFilesDir() + this.user.getListaArquivos().getByHash(msg[2]), Integer.parseInt(msg[3]), 0);
+			transfer.setSender(this.servidor.getFilesDir() + this.user.getListaArquivos().getByHash(msg[2]).getHash() + ".file", Integer.parseInt(msg[3]), 0);
 			transfer.start();
 			
 			/*boolean userCorreto = false;
