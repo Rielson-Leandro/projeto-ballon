@@ -8,8 +8,10 @@ import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Vector;
+import java.util.concurrent.Semaphore;
 
 import network.EnviarArquivo;
 import network.exception.ErroConexaoException;
@@ -28,6 +30,7 @@ public class Sincronizador extends Thread{
 	private DataOutputStream msgOutToServer;
 	private BufferedReader msgInFromServer;
 	private Socket skt;
+	private Semaphore semaforo;
 
 	public Sincronizador(Client cliente, Socket socket){
 		super();
@@ -35,7 +38,21 @@ public class Sincronizador extends Thread{
 		this.skt = socket;
 		this.lista = this.cliente.getUser().getListaArquivos();
 		this.firstTime = true;
+		this.semaforo = new Semaphore(1);
 		this.inicializadorCanaisMensagem();
+	}
+	
+	public synchronized void getPremissaoTransferir(){
+		try {
+			this.semaforo.acquire();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	public void liberarPermissao(){
+		this.semaforo.release();
 	}
 
 	private void inicializadorCanaisMensagem(){
@@ -201,7 +218,7 @@ public class Sincronizador extends Thread{
 						
 						portaSelecionada = true;
 						
-						TransferMini transfer = new TransferMini(arq, this.cliente.getRemainigDir());
+						TransferMini transfer = new TransferMini(arq, this.cliente.getRemainigDir(), this);
 						transfer.setSender(this.cliente.getFilesDir() + arq.getNomeOriginal(), Integer.parseInt(msgPorta[2]), 0);
 						System.out.println("Porta selecionada, iniciando transferencia ... ");
 						transfer.start();
@@ -240,7 +257,7 @@ public class Sincronizador extends Thread{
 		this.cliente.sendMensagem("SENDFILE#" + this.cliente.getUser().getLogin() + "#" + hash + "#" + portaDisponivel/*socketReceptor.getLocalPort()*/);
 		
 		Arquivo arq = this.lista.getByHash(hash);
-		TransferMini transfer = new TransferMini(arq, this.cliente.getRemainigDir());
+		TransferMini transfer = new TransferMini(arq, this.cliente.getRemainigDir(), this);
 		transfer.setReciever(this.cliente.getFilesDir() + arq.getNomeOriginal(), portaDisponivel, this.skt.getInetAddress(), arq.getTamanho(), false);
 		transfer.start();
 		

@@ -7,6 +7,8 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.net.InetAddress;
 
+import client.Sincronizador;
+
 import network.EnviarArquivo;
 import network.ReceberArquivo;
 import network.exception.ArquivoNaoEncontradoException;
@@ -24,6 +26,7 @@ public class TransferMini extends Thread{
 	private String remainingDir;
 	private int portaTransferencia;
 	private EstadoTransferencia transferStateFile;
+	private Sincronizador syncerPai;
 
 	//campos sender
 	private long seek;
@@ -39,10 +42,11 @@ public class TransferMini extends Thread{
 		this.setUpTransferStateFile();
 	}
 
-	public TransferMini(Arquivo arq, String remDir) {
+	public TransferMini(Arquivo arq, String remDir, Sincronizador syncer) {
 		this.arquivo = arq;
 		this.isClient = true;
 		this.remainingDir = remDir;
+		this.syncerPai = syncer;
 		this.setUpTransferStateFile();
 	}
 
@@ -60,14 +64,14 @@ public class TransferMini extends Thread{
 				selecionado = true;
 			}
 		}while(!selecionado);
-		
+
 		try {
 			remFile.createNewFile();
 		} catch (IOException e) {
 			System.out.println("FALHA ao criar o arquivo de estado " + numOrdem + ".rem");
 		}
 		this.transferStateFile = new EstadoTransferencia(this.remainingDir, numOrdem);
-		
+
 		//salva os dados iniciais
 		try{
 			FileOutputStream fos = new FileOutputStream(remFile);
@@ -87,7 +91,7 @@ public class TransferMini extends Thread{
 			System.out.println("FALHA ao criar o canal de saida de dados para o arquivo de estado " + numOrdem + ".rem");
 		}
 	}
-	
+
 	private void saveTransferStateFile(){
 		//atualiza os dados do arquivo de estado
 		File remFile = new File(this.remainingDir + this.transferStateFile.getNumOrdem() + ".rem");
@@ -109,7 +113,12 @@ public class TransferMini extends Thread{
 			System.out.println("FALHA ao criar o canal de saida de dados de atualizacao para o arquivo de estado " + this.transferStateFile.getNumOrdem() + ".rem");
 		}
 	}
-	
+
+	private void deleteTransferStateFile(){
+		File remFile = new File(this.remainingDir + this.transferStateFile.getNumOrdem() + ".rem");
+		remFile.delete();
+	}
+
 	public void setSender(String caminho_arquivo,int porta_envio,long seek){
 		this.isSender = true;
 		this.isReciever = false;
@@ -132,6 +141,10 @@ public class TransferMini extends Thread{
 
 	public void run(){
 
+		if(this.isClient){
+			this.syncerPai.getPremissaoTransferir();
+		}
+
 		if(this.isSender){
 
 			try {
@@ -146,6 +159,8 @@ public class TransferMini extends Thread{
 						System.out.println("FALHA ao enviar a thread de envio para sleep.");
 					}
 				}
+
+				this.deleteTransferStateFile();
 
 				if(this.isClient){
 					this.arquivo.setSyncing(false);
@@ -174,6 +189,8 @@ public class TransferMini extends Thread{
 					}
 				}
 
+				this.deleteTransferStateFile();
+
 				if(isClient){
 					this.arquivo.setSyncing(false);
 					this.arquivo.setSyncStatus(true);
@@ -185,6 +202,10 @@ public class TransferMini extends Thread{
 				System.out.println("FALHA ao receber arquivo em " + this.caminhoArquivo);
 			}
 
+		}
+
+		if(this.isClient){
+			this.syncerPai.liberarPermissao();
 		}
 
 		System.out.println("Finalizando transferidor.");
@@ -200,7 +221,7 @@ class EstadoTransferencia implements Serializable{
 	private long lastSentByte;
 	private String caminhoArquivoParaEnviar;
 	private int numOrdem;
-	
+
 	public EstadoTransferencia(String caminho, int numOrdem){
 		this.caminhoArquivoParaEnviar = caminho;
 		this.numOrdem = numOrdem;
@@ -229,5 +250,5 @@ class EstadoTransferencia implements Serializable{
 	public void setNumOrdem(int numOrdem) {
 		this.numOrdem = numOrdem;
 	}
-	
+
 }
