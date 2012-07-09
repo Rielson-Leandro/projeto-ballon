@@ -74,8 +74,6 @@ public class EnviarArquivo {
 			porcentagem = ((double)socket.last_send.get()/(double)tamanho_arquivo)*100;
 			
 			tempo_restante = (((tempo_restante*0.125) + 0.8175*((double)(tamanho_arquivo-socket.last_send.get())/1024)/repVelo));
-			
-			System.out.println(Thread.currentThread().getName());
 		}
 	}
 
